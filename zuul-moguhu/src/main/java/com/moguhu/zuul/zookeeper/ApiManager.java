@@ -81,11 +81,11 @@ public class ApiManager {
      * @param group
      */
     private static void processComponent(ApiGroupDto group) {
-        List<String> compIds = group.getCompIds();
+        List<Long> compIds = group.getCompIds();
         if (CollectionUtils.isNotEmpty(compIds)) {
             List<ComponentDto> componentList = Lists.newArrayList();
             compIds.forEach(compId -> {
-                ComponentDto component = ZuulFilterPoller.getComponent(compId);
+                ComponentDto component = ZuulFilterPoller.getComponent(String.valueOf(compId));
                 componentList.add(component);
             });
             group.setComponentList(componentList);
