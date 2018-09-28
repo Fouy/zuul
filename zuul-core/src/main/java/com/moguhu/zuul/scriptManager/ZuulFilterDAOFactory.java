@@ -1,9 +1,9 @@
 package com.moguhu.zuul.scriptManager;
 
 import com.google.common.collect.Maps;
+import com.moguhu.zuul.constants.ZuulConstants;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
-import com.moguhu.zuul.constants.ZuulConstants;
 
 import java.util.concurrent.ConcurrentMap;
 

@@ -23,11 +23,7 @@ public class ZuulServlet extends HttpServlet {
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-
-        String bufferReqsStr = config.getInitParameter("buffer-requests");
-        boolean bufferReqs = bufferReqsStr != null && bufferReqsStr.equals("true") ? true : false;
-
-        zuulRunner = new ZuulRunner(bufferReqs);
+        zuulRunner = new ZuulRunner();
     }
 
     @Override

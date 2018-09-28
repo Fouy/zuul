@@ -1,13 +1,12 @@
 package com.moguhu.zuul.dependency.ribbon;
 
+import com.moguhu.zuul.ZuulApplicationInfo;
+import com.moguhu.zuul.constants.ZuulConstants;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.config.*;
-import com.moguhu.zuul.ZuulApplicationInfo;
-import com.moguhu.zuul.constants.ZuulConstants;
 import org.apache.commons.configuration.AbstractConfiguration;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +34,7 @@ public class RibbonConfig {
      * This method attempts to set up the default Ribbon origin VIP from properties and environment.
      * One method is through autoscale name convention. The Autoscaling group name can be set up as follow : zuul-origin_stack.
      * Zuul will derive the origin VIP  as origin-stack.{zuul.ribbon.vipAddress.template}
-     * <p/>
+     * <p>
      * the client may also be specified by the property ZuulConstants.ZUUL_NIWS_DEFAULTCLIENT
      *
      * @throws ClientException
@@ -181,25 +180,6 @@ public class RibbonConfig {
             throw new RuntimeException("need to configure zuul.ribbon.vipAddress.template . eg zuul.ribbon.vipAddress.template=%s-%s.netflix.net:8888 where %s(1) is client and %s(2) is stack");
 
         return String.format(vipAddressTemplate, client, stack);
-    }
-
-
-    public static final class UnitTest {
-
-        @Test
-        public void defaultVipAddressForStandardStack() {
-            //todo fix
-//            assertEquals("null-prod.netflix.net:7001", RibbonConfig.getDefaultVipAddress("prod"));
-        }
-
-
-        @Test
-        public void defaultVipAddressForLatAmStack() {
-            //todo fix
-//            assertEquals("null-prod.latam.netflix.net:7001", RibbonConfig.getDefaultVipAddress("prod.latam"));
-        }
-
-
     }
 
 }

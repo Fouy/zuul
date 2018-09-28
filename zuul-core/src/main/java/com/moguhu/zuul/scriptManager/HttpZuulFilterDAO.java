@@ -30,6 +30,8 @@ public class HttpZuulFilterDAO implements ZuulFilterDAO {
 
     private static final String COMP_CODE_PATTERN = "(.*):(.*):(.*)";
 
+    private static final String HOST_PROTOCOL = "http://";
+
     private List<String> managerNodes = Lists.newArrayList();
     private String gateServiceCode;
 
@@ -42,7 +44,7 @@ public class HttpZuulFilterDAO implements ZuulFilterDAO {
     public List<ComponentDto> getAllCanaryFilters() throws Exception {
         List<ComponentDto> list = Lists.newArrayList();
 
-        String url = HostsUtil.getRandomNode(managerNodes) + String.format(MANAGER_PREFIX, "allcomponents");
+        String url = HOST_PROTOCOL + HostsUtil.getRandomNode(managerNodes) + String.format(MANAGER_PREFIX, "allcomponents");
         List<NameValuePair> pairs = Lists.newArrayList();
         pairs.add(new BasicNameValuePair("gateServiceCode", gateServiceCode));
         pairs.add(new BasicNameValuePair("type", "canary"));
@@ -65,7 +67,7 @@ public class HttpZuulFilterDAO implements ZuulFilterDAO {
     public List<ComponentDto> getAllActiveFilters() throws Exception {
         List<ComponentDto> list = Lists.newArrayList();
 
-        String url = HostsUtil.getRandomNode(managerNodes) + String.format(MANAGER_PREFIX, "allcomponents");
+        String url = HOST_PROTOCOL + HostsUtil.getRandomNode(managerNodes) + String.format(MANAGER_PREFIX, "allcomponents");
         List<NameValuePair> pairs = Lists.newArrayList();
         pairs.add(new BasicNameValuePair("gateServiceCode", gateServiceCode));
         pairs.add(new BasicNameValuePair("type", "active"));
@@ -87,7 +89,7 @@ public class HttpZuulFilterDAO implements ZuulFilterDAO {
     public ComponentDto getSingleFilter(String compId) throws Exception {
         ComponentDto component = new ComponentDto();
 
-        String url = HostsUtil.getRandomNode(managerNodes) + String.format(MANAGER_PREFIX, "getcomponent");
+        String url = HOST_PROTOCOL + HostsUtil.getRandomNode(managerNodes) + String.format(MANAGER_PREFIX, "getcomponent");
         List<NameValuePair> pairs = Lists.newArrayList();
         pairs.add(new BasicNameValuePair("gateServiceCode", gateServiceCode));
         pairs.add(new BasicNameValuePair("compId", compId));

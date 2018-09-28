@@ -56,7 +56,7 @@ public class StartServer implements ServletContextListener {
             initZookeeper();
             initZuul();
 
-            ApplicationInfoManager.getInstance().setInstanceStatus(InstanceInfo.InstanceStatus.UP);
+//            ApplicationInfoManager.getInstance().setInstanceStatus(InstanceInfo.InstanceStatus.UP);
         } catch (Exception e) {
             logger.error("Error while initializing zuul gateway.", e);
             throw new RuntimeException(e);
@@ -90,8 +90,15 @@ public class StartServer implements ServletContextListener {
         logger.info("Init Zookeeper Client.");
         CuratorClient.getInstance();
         CuratorFramework client = CuratorClient.getInstance().getClient();
-        TreeCache apiGroupTree = new TreeCache(client, ZookeeperKey.BAIZE_ZUUL + "/" + gateServiceCode + ZookeeperKey.SERVICECODE_APIGROUP);
+        String path = ZookeeperKey.BAIZE_ZUUL + "/" + gateServiceCode.get() + "/" + ZookeeperKey.SERVICECODE_APIGROUP;
+        TreeCache apiGroupTree = new TreeCache(client, path);
         apiGroupTree.getListenable().addListener(new ApiTreeCacheListener());
+        try {
+            apiGroupTree.start();
+        } catch (Exception e) {
+            logger.error("Init Zookeeper Client, Add Listener Error, {}", e);
+            System.exit(-1);
+        }
     }
 
     private void initZuul() throws Exception {

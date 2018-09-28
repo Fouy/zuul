@@ -1,5 +1,6 @@
 package com.moguhu.zuul.http;
 
+import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import java.io.IOException;
 
@@ -33,4 +34,18 @@ public class ServletInputStreamWrapper extends ServletInputStream {
         return data[idx++] & 0xff;
     }
 
+    @Override
+    public boolean isFinished() {
+        return false;
+    }
+
+    @Override
+    public boolean isReady() {
+        return false;
+    }
+
+    @Override
+    public void setReadListener(ReadListener readListener) {
+
+    }
 }

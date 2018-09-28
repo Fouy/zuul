@@ -1,12 +1,12 @@
 package com.moguhu.zuul.stats;
 
 import com.moguhu.zuul.stats.monitoring.MonitorRegistry;
+import com.moguhu.zuul.stats.monitoring.NamedCount;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.annotations.MonitorTags;
 import com.netflix.servo.tag.BasicTagList;
 import com.netflix.servo.tag.TagList;
-import com.moguhu.zuul.stats.monitoring.NamedCount;
 
 import java.util.concurrent.atomic.AtomicLong;
 

@@ -50,7 +50,7 @@ public class ApiParamParser {
             }
 
             if (BooleanEnum.YES.name().equals(paramDto.getNeed()) && StringUtils.isEmpty(paramValue)) {
-                throw new RuntimeException("parameter [" + paramValue + "] is needed");
+                throw new RuntimeException("parameter [" + paramName + "] is needed");
             }
             // TODO 类型校验
 

@@ -1,10 +1,10 @@
 package com.moguhu.zuul.scriptManager;
 
 import com.moguhu.baize.client.constants.ZookeeperKey;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.config.DynamicStringProperty;
 import com.moguhu.zuul.constants.ZuulConstants;
 import com.moguhu.zuul.zookeeper.curator.CuratorClient;
+import com.netflix.config.DynamicPropertyFactory;
+import com.netflix.config.DynamicStringProperty;
 
 import java.util.List;
 

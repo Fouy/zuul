@@ -9,21 +9,16 @@ import com.moguhu.zuul.ZuulFilter;
 import com.moguhu.zuul.component.ApiParamParser;
 import com.moguhu.zuul.context.NFRequestContext;
 import com.moguhu.zuul.util.HostsUtil;
-import com.moguhu.zuul.zookeeper.ApiManager;
-
-import java.util.Iterator;
-import java.util.List;
-
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -68,7 +63,7 @@ public class BackendHostFilter extends ZuulFilter {
             ApiDto api = ctx.getBackendApi();
             Map<String, Map<String, String>> backendParams = ctx.getBackendParams();
             // 后端请求URL
-            String backendUrl = host + api.getPath();
+            String backendUrl = api.getProtocol() + "://" + host + api.getPath();
 
             // 后端参数组装
             String getUrlTail = "";

@@ -1,8 +1,8 @@
 package com.moguhu.zuul.zookeeper.curator;
 
+import com.moguhu.zuul.constants.ZuulConstants;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
-import com.moguhu.zuul.constants.ZuulConstants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;

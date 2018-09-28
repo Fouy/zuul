@@ -1,7 +1,7 @@
 package com.moguhu.zuul.stats;
 
-import com.moguhu.zuul.stats.monitoring.MonitorRegistry;
 import com.moguhu.zuul.context.RequestContext;
+import com.moguhu.zuul.stats.monitoring.MonitorRegistry;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

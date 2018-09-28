@@ -2,11 +2,11 @@ package com.moguhu.zuul.scriptManager;
 
 import com.google.common.collect.Maps;
 import com.moguhu.baize.client.model.ComponentDto;
+import com.moguhu.zuul.constants.ZuulConstants;
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicLongProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
-import com.moguhu.zuul.constants.ZuulConstants;
 import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -4,15 +4,17 @@ import com.google.common.collect.Lists;
 import com.moguhu.baize.client.model.ApiDto;
 import com.moguhu.baize.client.model.ApiGroupDto;
 import com.moguhu.baize.client.model.ComponentDto;
+import com.moguhu.zuul.constants.ZuulConstants;
 import com.moguhu.zuul.context.NFRequestContext;
 import com.moguhu.zuul.scriptManager.ZuulFilterPoller;
+import com.netflix.config.DynamicPropertyFactory;
+import com.netflix.config.DynamicStringProperty;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,9 +28,11 @@ import java.util.regex.Pattern;
  */
 public class ApiManager {
 
+    static DynamicStringProperty gateServiceCode = DynamicPropertyFactory.getInstance().getStringProperty(ZuulConstants.GATE_SERVICE_CODE, null);
+
     private static final Map<String, ApiGroupDto> groupMap = new ConcurrentHashMap<>();
-    
-    private static final String URI_PATTERN = "/(.*)/(.*)";
+
+    private static final String URI_PATTERN = "/(.*?)/(.*?)/(.*)";
 
     public static void putApi(ApiGroupDto group, ApiDto api) {
         if (null == group || null == api) {
@@ -37,6 +41,9 @@ public class ApiManager {
         String groupId = String.valueOf(group.getGroupId());
         if (groupMap.get(groupId) == null) {
             groupMap.put(groupId, group);
+        }
+        if (null == group.getApiList()) {
+            group.setApiList(Lists.newArrayList());
         }
         if (group.getApiList().contains(api)) {
             group.getApiList().remove(api);
@@ -51,6 +58,9 @@ public class ApiManager {
         }
         String groupId = String.valueOf(group.getGroupId());
         if (groupMap.get(groupId) == null) {
+            return;
+        }
+        if (CollectionUtils.isEmpty(group.getApiList())) {
             return;
         }
         if (group.getApiList().contains(api)) {
@@ -125,6 +135,7 @@ public class ApiManager {
 
     /**
      * 检查uri 是否合法, 并返回对应匹配的 ApiDto
+     *
      * @param uri
      * @return
      */
@@ -132,10 +143,14 @@ public class ApiManager {
         Pattern p = Pattern.compile(URI_PATTERN);
         Matcher m = p.matcher(uri);
         if (!m.find()) {
-            throw new RuntimeException("Uri was invalid!");
+            throw new RuntimeException("Uri was invalid");
         }
-        String groupPath = "/" + m.group(1);
-        String apiPath = "/" + m.group(2);
+        String serviceCode = m.group(1);
+        String groupPath = "/" + m.group(2);
+        String apiPath = groupPath + "/" + m.group(3);
+        if (!gateServiceCode.get().equals(serviceCode)) {
+            throw new RuntimeException("serviceCode was invalid");
+        }
 
         String groupId = "";
         Iterator<Map.Entry<String, ApiGroupDto>> iterator = groupMap.entrySet().iterator();
@@ -145,15 +160,15 @@ public class ApiManager {
             if (groupPath.equals(groupDto.getPath())) {
                 groupId = groupEntry.getKey();
                 NFRequestContext.getCurrentContext().setBackendGroup(groupDto);
-                break ;
+                break;
             }
         }
         if (StringUtils.isEmpty(groupId)) {
-            throw new RuntimeException("Uri was invalid!");
+            throw new RuntimeException("Uri was invalid, cannot find group");
         }
         List<ApiDto> apiList = groupMap.get(groupId).getApiList();
         if (CollectionUtils.isEmpty(apiList)) {
-            throw new RuntimeException("Uri was invalid!");
+            throw new RuntimeException("Uri was invalid, empty api list");
         }
 
         for (ApiDto apiDto : apiList) {
@@ -162,7 +177,7 @@ public class ApiManager {
                 return apiDto;
             }
         }
-        return null;
+        throw new RuntimeException("Uri was invalid, cannot find uri pattern");
     }
 
 }
