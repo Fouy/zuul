@@ -1,21 +1,11 @@
 package filters.pre
 
 import com.moguhu.zuul.ZuulFilter
-
 import com.moguhu.zuul.context.RequestContext
 import com.moguhu.zuul.exception.ZuulException
 import com.moguhu.zuul.stats.ErrorStatsManager
-import org.junit.Assert
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.Mockito
-import org.mockito.runners.MockitoJUnitRunner
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
 
 class ErrorResponse extends ZuulFilter {
 
@@ -82,27 +72,25 @@ class ErrorResponse extends ZuulFilter {
         }
 
     }
-    /*
-    JSON/ xml ErrorResponse responses
 
-v=1 or unspecified:
-<status>
-<status_code>status_code</status_code>
-<message>message</message>
-</status>
-
-v=1.5,2.0:
-<status>
-<message>user_id is invalid</message>
-</status>
-
-v=1.5,2.0:
-{"status": {"message": "user_id is invalid"}}
-
-v=1 or unspecified:
-
+    /**
+     * JSON/ xml ErrorResponse responses
+     *
+     * v=1 or unspecified:
+     * <status>
+     *     <status_code>status_code</status_code>
+     *     <message>message</message>
+     * </status>
+     *
+     * v=1.5,2.0:
+     * <status>
+     *     <message>user_id is invalid</message>
+     * </status>
+     *
+     * v=1.5,2.0:
+     *{"status": {"message": "user_id is invalid"}}*
+     * v=1 or unspecified:
      */
-
     String getErrorMessage(Throwable ex, int status_code) {
         String ver = version
         String format = outputType
@@ -176,174 +164,5 @@ v=1 or unspecified:
         if (overrideStatusCode) return "1"
         return version;
     }
-
-
-    @RunWith(MockitoJUnitRunner.class)
-    public static class TestUnit {
-
-        @Mock
-        HttpServletResponse response
-        @Mock
-        HttpServletRequest request
-
-        @Test
-        public void testErrorXMLv10() {
-            RequestContext.setContextClass(NFRequestContext.class);
-            ErrorResponse errorResponse = new ErrorResponse();
-            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
-            RequestContext.currentContext.request = request
-            RequestContext.currentContext.response = response
-            Mockito.when(request.getParameter("v")).thenReturn("1.0")
-            Mockito.when(request.getParameter("override_error_status")).thenReturn("true")
-            Throwable th = new Exception("test")
-            RequestContext.currentContext.throwable = th;
-            errorResponse.run();
-            Assert.assertTrue(RequestContext.currentContext.getResponseBody().contains("<message>test</message>"))
-            Assert.assertTrue(RequestContext.currentContext.getResponseBody().contains("<status_code>500</status_code>"))
-            Assert.assertTrue(RequestContext.getCurrentContext().responseStatusCode == 200)
-        }
-
-        @Test
-        public void testErrorXMLv10OverrideErrorStatus() {
-            RequestContext.setContextClass(NFRequestContext.class);
-            ErrorResponse errorResponse = new ErrorResponse();
-            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
-            RequestContext.currentContext.request = request
-            RequestContext.currentContext.response = response
-            Mockito.when(request.getParameter("v")).thenReturn("1.0")
-            Throwable th = new Exception("test")
-            RequestContext.currentContext.throwable = th;
-            errorResponse.run();
-            Assert.assertTrue(RequestContext.currentContext.getResponseBody().contains("<message>test</message>"))
-            Assert.assertTrue(RequestContext.currentContext.getResponseBody().contains("<status_code>500</status_code>"))
-            Assert.assertTrue(RequestContext.getCurrentContext().responseStatusCode == 500)
-        }
-
-
-        @Test
-        public void testErrorXML() {
-            RequestContext.setContextClass(NFRequestContext.class);
-            RequestContext.currentContext.unset();
-            ErrorResponse errorResponse = new ErrorResponse();
-            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
-            RequestContext.currentContext.request = request
-            RequestContext.currentContext.response = response
-            Throwable th = new Exception("test")
-            RequestContext.currentContext.throwable = th;
-            errorResponse.run();
-            Assert.assertTrue(RequestContext.currentContext.getResponseBody().contains("<message>test</message>"))
-            Assert.assertTrue(RequestContext.currentContext.getResponseBody().contains("<status_code>500</status_code>"))
-            Assert.assertTrue(RequestContext.getCurrentContext().responseStatusCode == 500)
-        }
-
-        @Test
-        public void testErrorXMLv20() {
-            RequestContext.setContextClass(NFRequestContext.class);
-            RequestContext.currentContext.unset();
-            ErrorResponse errorResponse = new ErrorResponse();
-            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
-            RequestContext.currentContext.request = request
-            RequestContext.currentContext.response = response
-            Mockito.when(request.getParameter("v")).thenReturn("2.0")
-            Throwable th = new Exception("test")
-            RequestContext.currentContext.throwable = th;
-            errorResponse.run();
-            Assert.assertTrue(RequestContext.currentContext.getResponseBody().contains("<message>test</message>"))
-            Assert.assertTrue(!RequestContext.currentContext.getResponseBody().contains("<status_code>500</status_code>"))
-            Assert.assertTrue(RequestContext.getCurrentContext().responseStatusCode == 500)
-        }
-
-        @Test
-        public void testErrorJSON() {
-            RequestContext.setContextClass(NFRequestContext.class);
-            RequestContext.currentContext.unset();
-            ErrorResponse errorResponse = new ErrorResponse();
-            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
-            RequestContext.currentContext.request = request
-            RequestContext.currentContext.response = response
-            Mockito.when(request.getParameter("output")).thenReturn("json")
-            Throwable th = new Exception("test")
-            RequestContext.currentContext.throwable = th;
-            errorResponse.run();
-
-            Assert.assertTrue(RequestContext.currentContext.getResponseBody().equals("{\"status\": {\"message\": \"test\", \"status_code\": 500}}"))
-            Assert.assertTrue(RequestContext.getCurrentContext().responseStatusCode == 500)
-        }
-
-        @Test
-        public void testErrorJSONv20() {
-            RequestContext.setContextClass(NFRequestContext.class);
-            RequestContext.currentContext.unset();
-            ErrorResponse errorResponse = new ErrorResponse();
-            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
-            RequestContext.currentContext.request = request
-            RequestContext.currentContext.response = response
-            Mockito.when(request.getParameter("output")).thenReturn("json")
-            Mockito.when(request.getParameter("v")).thenReturn("2.0")
-            Throwable th = new Exception("test")
-            RequestContext.currentContext.throwable = th;
-            errorResponse.run();
-            Assert.assertTrue(RequestContext.currentContext.getResponseBody().equals("{\"status\": {\"message\": \"test\"}}"))
-            Assert.assertTrue(RequestContext.getCurrentContext().responseStatusCode == 500)
-        }
-
-
-        @Test
-        public void testErrorJSONv20Callback() {
-            RequestContext.setContextClass(NFRequestContext.class);
-            RequestContext.currentContext.unset();
-            ErrorResponse errorResponse = new ErrorResponse();
-            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
-            RequestContext.currentContext.request = request
-            RequestContext.currentContext.response = response
-            Mockito.when(request.getParameter("output")).thenReturn("json")
-            Mockito.when(request.getParameter("v")).thenReturn("2.0")
-            Mockito.when(request.getParameter("callback")).thenReturn("moo")
-            Throwable th = new Exception("test")
-            RequestContext.currentContext.throwable = th;
-            errorResponse.run();
-            GroovyTestCase.assertEquals("moo({\"status\": {\"message\": \"test\", \"status_code\": 500}});", RequestContext.currentContext.getResponseBody())
-            GroovyTestCase.assertEquals(200, RequestContext.getCurrentContext().responseStatusCode)
-        }
-
-        @Test
-        public void testErrorJSONCallback() {
-            RequestContext.setContextClass(NFRequestContext.class);
-            RequestContext.currentContext.unset();
-            ErrorResponse errorResponse = new ErrorResponse();
-            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
-            RequestContext.currentContext.request = request
-            RequestContext.currentContext.response = response
-            Mockito.when(request.getParameter("output")).thenReturn("json")
-            Mockito.when(request.getParameter("callback")).thenReturn("moo")
-            Throwable th = new Exception("test")
-            RequestContext.currentContext.throwable = th;
-            errorResponse.run();
-            GroovyTestCase.assertEquals("moo({\"status\": {\"message\": \"test\", \"status_code\": 500}});", RequestContext.currentContext.getResponseBody())
-            GroovyTestCase.assertEquals(200, RequestContext.getCurrentContext().responseStatusCode)
-        }
-
-
-        @Test
-        public void testErrorJSONv20OverrideErrorStatus() {
-            RequestContext.setContextClass(NFRequestContext.class);
-            RequestContext.currentContext.unset();
-            ErrorResponse errorResponse = new ErrorResponse();
-            HttpServletRequest request = Mockito.mock(HttpServletRequest.class)
-            RequestContext.currentContext.request = request
-            RequestContext.currentContext.response = response
-            Mockito.when(request.getParameter("output")).thenReturn("json")
-            Mockito.when(request.getParameter("v")).thenReturn("2.0")
-            Mockito.when(request.getParameter("override_error_status")).thenReturn("true")
-            Throwable th = new Exception("test")
-            RequestContext.currentContext.throwable = th;
-            errorResponse.run();
-            GroovyTestCase.assertEquals("{\"status\": {\"message\": \"test\", \"status_code\": 500}}", RequestContext.currentContext.getResponseBody())
-            GroovyTestCase.assertEquals(200, RequestContext.getCurrentContext().responseStatusCode)
-        }
-
-
-    }
-
 
 }

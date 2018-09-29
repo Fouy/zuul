@@ -1,7 +1,7 @@
 package com.moguhu.zuul.constants;
 
 /**
- * property constants
+ * Zuul 网关常量
  */
 public class ZuulConstants {
 
@@ -25,26 +25,11 @@ public class ZuulConstants {
     public static final String ZUUL_FILTER_DAO_TYPE = "zuul.filter.dao.type";
 
 
-
-
-
-
-
-    public static final String ZUUL_NIWS_CLIENTLIST = "zuul.niws.clientlist";
-    public static final String DEFAULT_NFASTYANAX_READCONSISTENCY = "default.nfastyanax.readConsistency";
-    public static final String DEFAULT_NFASTYANAX_WRITECONSISTENCY = "default.nfastyanax.writeConsistency";
-    public static final String DEFAULT_NFASTYANAX_SOCKETTIMEOUT = "default.nfastyanax.socketTimeout";
-    public static final String DEFAULT_NFASTYANAX_MAXCONNSPERHOST = "default.nfastyanax.maxConnsPerHost";
-    public static final String DEFAULT_NFASTYANAX_MAXTIMEOUTWHENEXHAUSTED = "default.nfastyanax.maxTimeoutWhenExhausted";
-    public static final String DEFAULT_NFASTYANAX_MAXFAILOVERCOUNT = "default.nfastyanax.maxFailoverCount";
-    public static final String DEFAULT_NFASTYANAX_FAILOVERWAITTIME = "default.nfastyanax.failoverWaitTime";
-
     public static final String ZUUL_EUREKA = "zuul.eureka.";
     public static final String ZUUL_AUTODETECT_BACKEND_VIPS = "zuul.autodetect-backend-vips";
     public static final String ZUUL_RIBBON_NAMESPACE = "zuul.ribbon.namespace";
     public static final String ZUUL_RIBBON_VIPADDRESS_TEMPLATE = "zuul.ribbon.vipAddress.template";
     public static final String ZUUL_HTTPCLIENT = "zuul.httpClient.";
-
 
 
     public static final String ZUUL_DEBUG_REQUEST = "zuul.debug.request";

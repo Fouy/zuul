@@ -6,11 +6,13 @@ import com.moguhu.baize.client.model.ApiGroupDto;
 import com.moguhu.baize.client.model.ComponentDto;
 import com.moguhu.zuul.constants.ZuulConstants;
 import com.moguhu.zuul.context.NFRequestContext;
+import com.moguhu.zuul.exception.ZuulException;
 import com.moguhu.zuul.scriptManager.ZuulFilterPoller;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpStatus;
 
 import java.util.Iterator;
 import java.util.List;
@@ -139,17 +141,17 @@ public class ApiManager {
      * @param uri
      * @return
      */
-    public static ApiDto checkPermission(String uri) {
+    public static ApiDto checkPermission(String uri) throws ZuulException {
         Pattern p = Pattern.compile(URI_PATTERN);
         Matcher m = p.matcher(uri);
         if (!m.find()) {
-            throw new RuntimeException("Uri was invalid");
+            throw new ZuulException("Uri was invalid", HttpStatus.SC_OK, "");
         }
         String serviceCode = m.group(1);
         String groupPath = "/" + m.group(2);
         String apiPath = groupPath + "/" + m.group(3);
         if (!gateServiceCode.get().equals(serviceCode)) {
-            throw new RuntimeException("serviceCode was invalid");
+            throw new ZuulException("serviceCode was invalid", HttpStatus.SC_OK, "");
         }
 
         String groupId = "";
@@ -164,11 +166,11 @@ public class ApiManager {
             }
         }
         if (StringUtils.isEmpty(groupId)) {
-            throw new RuntimeException("Uri was invalid, cannot find group");
+            throw new ZuulException("Uri was invalid, cannot find group", HttpStatus.SC_OK, "");
         }
         List<ApiDto> apiList = groupMap.get(groupId).getApiList();
         if (CollectionUtils.isEmpty(apiList)) {
-            throw new RuntimeException("Uri was invalid, empty api list");
+            throw new ZuulException("Uri was invalid, empty api list", HttpStatus.SC_OK, "");
         }
 
         for (ApiDto apiDto : apiList) {
@@ -177,7 +179,7 @@ public class ApiManager {
                 return apiDto;
             }
         }
-        throw new RuntimeException("Uri was invalid, cannot find uri pattern");
+        throw new ZuulException("Uri was invalid, cannot find uri pattern", HttpStatus.SC_OK, "");
     }
 
 }

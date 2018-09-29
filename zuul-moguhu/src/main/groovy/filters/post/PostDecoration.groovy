@@ -4,13 +4,6 @@ import com.moguhu.zuul.ZuulFilter
 import com.moguhu.zuul.context.RequestContext
 import com.moguhu.zuul.stats.ErrorStatsManager
 import com.netflix.util.Pair
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.Mockito
-import org.mockito.runners.MockitoJUnitRunner
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
@@ -32,7 +25,6 @@ class Postfilter extends ZuulFilter {
         addStandardResponseHeaders(RequestContext.getCurrentContext().getRequest(), RequestContext.getCurrentContext().getResponse())
         return null;
     }
-
 
     void addStandardResponseHeaders(HttpServletRequest req, HttpServletResponse res) {
         println(originatingURL)
@@ -75,48 +67,6 @@ class Postfilter extends ZuulFilter {
     @Override
     int filterOrder() {
         return 10
-    }
-
-    @RunWith(MockitoJUnitRunner.class)
-    public static class TestUnit {
-
-        @Mock
-        HttpServletResponse response
-        @Mock
-        HttpServletRequest request
-
-        @Before
-        public void before() {
-            RequestContext.setContextClass(NFRequestContext.class);
-        }
-
-        @Test
-        public void testHeaderResponse() {
-
-            def f = new Postfilter();
-            f = Mockito.spy(f)
-            RequestContext.getCurrentContext().setRequest(request)
-            RequestContext.getCurrentContext().setResponse(response)
-            f.runFilter()
-            RequestContext.getCurrentContext().zuulResponseHeaders.add(new Pair("X-Zuul", "Zuul"))
-            RequestContext.getCurrentContext().zuulResponseHeaders.add(new Pair("X-Zuul-instance", System.getenv("EC2_INSTANCE_ID") ?: "unknown"))
-            RequestContext.getCurrentContext().zuulResponseHeaders.add(new Pair("Access-Control-Allow-Origin", "*"))
-            RequestContext.getCurrentContext().zuulResponseHeaders.add(new Pair("Access-Control-Allow-Credentials", "true"))
-            RequestContext.getCurrentContext().zuulResponseHeaders.add(new Pair("Access-Control-Allow-Headers", "Authorization,Content-Type,Accept,X-Netflix.application.name,X-Netflix.application.version,X-Netflix.esn,X-Netflix.device.type,X-Netflix.certification.version,X-Netflix.request.uuid,X-Netflix.user.id,X-Netflix.oauth.consumer.key,X-Netflix.oauth.token"))
-            RequestContext.getCurrentContext().zuulResponseHeaders.add(new Pair("Access-Control-Allow-Methods", "GET, POST"))
-            RequestContext.getCurrentContext().zuulResponseHeaders.add(new Pair("Connection", "keep-alive"))
-
-
-            Assert.assertTrue(RequestContext.getCurrentContext().getZuulResponseHeaders().contains(new Pair("X-Zuul", "Zuul")))
-            Assert.assertTrue(RequestContext.getCurrentContext().getZuulResponseHeaders().contains(new Pair("Access-Control-Allow-Origin", "*")))
-            Assert.assertTrue(RequestContext.getCurrentContext().getZuulResponseHeaders().contains(new Pair("Access-Control-Allow-Credentials", "true")))
-            Assert.assertTrue(RequestContext.getCurrentContext().getZuulResponseHeaders().contains(new Pair("Access-Control-Allow-Headers", "Authorization,Content-Type,Accept,X-Netflix.application.name,X-Netflix.application.version,X-Netflix.esn,X-Netflix.device.type,X-Netflix.certification.version,X-Netflix.request.uuid,X-Netflix.user.id,X-Netflix.oauth.consumer.key,X-Netflix.oauth.token")))
-            Assert.assertTrue(RequestContext.getCurrentContext().getZuulResponseHeaders().contains(new Pair("Access-Control-Allow-Methods", "GET, POST")))
-
-            Assert.assertTrue(f.filterType().equals("post"))
-            Assert.assertTrue(f.shouldFilter())
-        }
-
     }
 
 }

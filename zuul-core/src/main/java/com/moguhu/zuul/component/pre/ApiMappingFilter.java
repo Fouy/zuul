@@ -3,6 +3,7 @@ package com.moguhu.zuul.component.pre;
 import com.moguhu.baize.client.model.ApiDto;
 import com.moguhu.zuul.ZuulFilter;
 import com.moguhu.zuul.component.ApiParamParser;
+import com.moguhu.zuul.constants.FilterConstants;
 import com.moguhu.zuul.context.NFRequestContext;
 import com.moguhu.zuul.zookeeper.ApiManager;
 import org.slf4j.Logger;
@@ -24,12 +25,12 @@ public class ApiMappingFilter extends ZuulFilter {
 
     @Override
     public int filterOrder() {
-        return Integer.MAX_VALUE;
+        return FilterConstants.API_MAPPING_FILTER_ORDER;
     }
 
     @Override
     public String filterType() {
-        return "pre";
+        return FilterConstants.PRE_TYPE;
     }
 
     @Override
@@ -53,6 +54,7 @@ public class ApiMappingFilter extends ZuulFilter {
 
         } catch (Exception e) {
             logger.error("API Mapping check error, {}", e);
+            throw new RuntimeException(e);
         }
         return null;
     }

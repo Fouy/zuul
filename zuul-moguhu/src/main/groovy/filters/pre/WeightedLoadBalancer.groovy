@@ -7,17 +7,6 @@ import com.moguhu.zuul.dependency.ribbon.RibbonConfig
 import com.netflix.config.DynamicIntProperty
 import com.netflix.config.DynamicPropertyFactory
 import com.netflix.config.DynamicStringProperty
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.Mockito
-import org.mockito.MockitoAnnotations
-import org.mockito.runners.MockitoJUnitRunner
-
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
 
 /**
  *
@@ -79,105 +68,6 @@ class WeightedLoadBalancer extends ZuulFilter {
                 return false;
             }
             return true
-        }
-
-    }
-
-    @RunWith(MockitoJUnitRunner.class)
-    public static class TestUnit {
-
-        @Mock
-        HttpServletResponse response
-
-        @Mock
-        HttpServletRequest request
-
-        RequestContext ctx;
-
-        @Before
-        public void before() {
-            // not sure why, but I need to call this explicitly
-            RequestContext.setContextClass(NFRequestContext.class);
-
-            MockitoAnnotations.initMocks(this);
-            RequestContext.currentContext.unset()
-
-            ctx = RequestContext.currentContext
-            ctx.request = request
-            ctx.response = response
-        }
-
-        @Test
-        public void testFalseRouting() {
-            request = Mockito.mock(HttpServletRequest.class)
-            WeightedLoadBalancer weightedLoadBalancer = new WeightedLoadBalancer()
-            weightedLoadBalancer = Mockito.spy(weightedLoadBalancer)
-            weightedLoadBalancer.AltPercent = Mockito.mock(DynamicIntProperty.class)
-            Mockito.when(weightedLoadBalancer.AltPercent.get()).thenReturn(new Integer(0))
-            Assert.assertFalse(weightedLoadBalancer.shouldFilter())
-        }
-
-        @Test
-        public void testMaxLimit() {
-            request = Mockito.mock(HttpServletRequest.class)
-            WeightedLoadBalancer weightedLoadBalancer = new WeightedLoadBalancer()
-            weightedLoadBalancer = Mockito.spy(weightedLoadBalancer)
-            weightedLoadBalancer.AltPercent = DynamicPropertyFactory.getInstance().getIntProperty("y", 10000)
-
-            weightedLoadBalancer.AltVIP = Mockito.mock(DynamicStringProperty.class)
-            Mockito.when(weightedLoadBalancer.AltVIP.get()).thenReturn("test")
-            Assert.assertFalse(weightedLoadBalancer.shouldFilter())
-        }
-
-        @Test
-        public void testTrueRouting() {
-            request = Mockito.mock(HttpServletRequest.class)
-            WeightedLoadBalancer weightedLoadBalancer = new WeightedLoadBalancer()
-            weightedLoadBalancer = Mockito.spy(weightedLoadBalancer)
-            weightedLoadBalancer.AltPercent = Mockito.mock(DynamicIntProperty.class)
-            Mockito.when(weightedLoadBalancer.AltPercent.get()).thenReturn(new Integer(10000))
-            weightedLoadBalancer.AltVIP = Mockito.mock(DynamicStringProperty.class)
-            Mockito.when(weightedLoadBalancer.AltVIP.get()).thenReturn("test")
-            weightedLoadBalancer.AltPercentMaxLimit = DynamicPropertyFactory.getInstance().getIntProperty("x", 100000)
-            Assert.assertTrue(weightedLoadBalancer.shouldFilter())
-            weightedLoadBalancer.run()
-            Assert.assertTrue(NFRequestContext.currentContext.routeVIP == "test")
-            Assert.assertTrue(NFRequestContext.currentContext.host == null)
-        }
-
-//        @Test
-        public void testPercentRouting() {
-            WeightedLoadBalancer weightedLoadBalancer = new WeightedLoadBalancer()
-            weightedLoadBalancer.AltPercent = DynamicPropertyFactory.getInstance().getIntProperty("x", 100)
-            weightedLoadBalancer.AltVIP = DynamicPropertyFactory.getInstance().getStringProperty("y", "test")
-            weightedLoadBalancer.envRegion = "us-east-1"
-
-            int nCount = 0
-
-            for (int i = 0; i < 1000; ++i) {
-                if (weightedLoadBalancer.shouldFilter()) nCount++
-            }
-            println(nCount)
-            Assert.assertTrue(nCount > 8)
-            Assert.assertTrue(nCount < 20)
-
-        }
-
-        @Test
-        public void testTrueHostRouting() {
-            request = Mockito.mock(HttpServletRequest.class)
-            WeightedLoadBalancer weightedLoadBalancer = new WeightedLoadBalancer()
-            weightedLoadBalancer = Mockito.spy(weightedLoadBalancer)
-            weightedLoadBalancer.AltPercent = Mockito.mock(DynamicIntProperty.class)
-            Mockito.when(weightedLoadBalancer.AltPercent.get()).thenReturn(new Integer(10000))
-            weightedLoadBalancer.AltPercentMaxLimit = DynamicPropertyFactory.getInstance().getIntProperty("x", 100000)
-
-            weightedLoadBalancer.AltHost = Mockito.mock(DynamicStringProperty.class)
-            Mockito.when(weightedLoadBalancer.AltHost.get()).thenReturn("http://www.moldfarm.com")
-            Assert.assertTrue(weightedLoadBalancer.shouldFilter())
-            weightedLoadBalancer.run()
-            Assert.assertTrue(NFRequestContext.currentContext.routeVIP == null)
-            Assert.assertTrue(NFRequestContext.currentContext.host != null)
         }
 
     }

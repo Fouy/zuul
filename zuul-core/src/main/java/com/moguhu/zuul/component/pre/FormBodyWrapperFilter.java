@@ -1,0 +1,191 @@
+package com.moguhu.zuul.component.pre;
+
+import com.moguhu.zuul.ZuulFilter;
+import com.moguhu.zuul.constants.FilterConstants;
+import com.moguhu.zuul.context.RequestContext;
+import com.moguhu.zuul.http.HttpServletRequestWrapper;
+import com.moguhu.zuul.http.ServletInputStreamWrapper;
+import com.moguhu.zuul.util.RequestContentDataExtractor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpOutputMessage;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.support.AllEncompassingFormHttpMessageConverter;
+import org.springframework.util.Assert;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.ReflectionUtils;
+
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletRequestWrapper;
+import javax.servlet.http.HttpServletRequest;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.Field;
+
+/**
+ * 前置过滤器, 为上游服务器提供表单数据转换和再编码
+ */
+public class FormBodyWrapperFilter extends ZuulFilter {
+
+    private FormHttpMessageConverter formHttpMessageConverter;
+    private Field requestField;
+    private Field servletRequestField;
+
+    public FormBodyWrapperFilter() {
+        this(new AllEncompassingFormHttpMessageConverter());
+    }
+
+    public FormBodyWrapperFilter(FormHttpMessageConverter formHttpMessageConverter) {
+        this.formHttpMessageConverter = formHttpMessageConverter;
+        this.requestField = ReflectionUtils.findField(HttpServletRequestWrapper.class, "req", HttpServletRequest.class);
+        this.servletRequestField = ReflectionUtils.findField(ServletRequestWrapper.class, "request", ServletRequest.class);
+        Assert.notNull(this.requestField, "HttpServletRequestWrapper.req field not found");
+        Assert.notNull(this.servletRequestField, "ServletRequestWrapper.request field not found");
+        this.requestField.setAccessible(true);
+        this.servletRequestField.setAccessible(true);
+    }
+
+    @Override
+    public String filterType() {
+        return FilterConstants.PRE_TYPE;
+    }
+
+    @Override
+    public int filterOrder() {
+        return FilterConstants.FORM_BODY_WRAPPER_FILTER_ORDER;
+    }
+
+    @Override
+    public boolean shouldFilter() {
+        RequestContext ctx = RequestContext.getCurrentContext();
+        HttpServletRequest request = ctx.getRequest();
+        String contentType = request.getContentType();
+        // Don't use this filter on GET method
+        if (contentType == null) {
+            return false;
+        }
+        // Only use this filter for form data and only for multipart data in a DispatcherServlet handler
+        try {
+            MediaType mediaType = MediaType.valueOf(contentType);
+            return MediaType.APPLICATION_FORM_URLENCODED.includes(mediaType)
+                    || MediaType.MULTIPART_FORM_DATA.includes(mediaType);
+        } catch (InvalidMediaTypeException ex) {
+            return false;
+        }
+    }
+
+    @Override
+    public Object run() {
+        RequestContext ctx = RequestContext.getCurrentContext();
+        HttpServletRequest request = ctx.getRequest();
+        FormBodyRequestWrapper wrapper = null;
+        if (request instanceof HttpServletRequestWrapper) {
+            HttpServletRequest wrapped = (HttpServletRequest) ReflectionUtils
+                    .getField(this.requestField, request);
+            wrapper = new FormBodyRequestWrapper(wrapped);
+            ReflectionUtils.setField(this.requestField, request, wrapper);
+            if (request instanceof ServletRequestWrapper) {
+                ReflectionUtils.setField(this.servletRequestField, request, wrapper);
+            }
+        } else {
+            wrapper = new FormBodyRequestWrapper(request);
+            ctx.setRequest(wrapper);
+        }
+        if (wrapper != null) {
+            ctx.getZuulRequestHeaders().put("content-type", wrapper.getContentType());
+        }
+        return null;
+    }
+
+
+    private class FormBodyRequestWrapper extends Servlet30RequestWrapper {
+
+        private HttpServletRequest request;
+        private volatile byte[] contentData;
+        private MediaType contentType;
+        private int contentLength;
+
+        public FormBodyRequestWrapper(HttpServletRequest request) {
+            super(request);
+            this.request = request;
+        }
+
+        @Override
+        public String getContentType() {
+            if (this.contentData == null) {
+                buildContentData();
+            }
+            return this.contentType.toString();
+        }
+
+        @Override
+        public int getContentLength() {
+            if (super.getContentLength() <= 0) {
+                return super.getContentLength();
+            }
+            if (this.contentData == null) {
+                buildContentData();
+            }
+            return this.contentLength;
+        }
+
+        public long getContentLengthLong() {
+            return getContentLength();
+        }
+
+        @Override
+        public ServletInputStream getInputStream() throws IOException {
+            if (this.contentData == null) {
+                buildContentData();
+            }
+            return new ServletInputStreamWrapper(this.contentData);
+        }
+
+        private synchronized void buildContentData() {
+            if (this.contentData != null) {
+                return;
+            }
+            try {
+                MultiValueMap<String, Object> builder = RequestContentDataExtractor.extract(this.request);
+                FormHttpOutputMessage data = new FormHttpOutputMessage();
+
+                this.contentType = MediaType.valueOf(this.request.getContentType());
+                data.getHeaders().setContentType(this.contentType);
+                FormBodyWrapperFilter.this.formHttpMessageConverter.write(builder, this.contentType, data);
+                // copy new content type including multipart boundary
+                this.contentType = data.getHeaders().getContentType();
+                byte[] input = data.getInput();
+                this.contentLength = input.length;
+                this.contentData = input;
+            } catch (Exception e) {
+                throw new IllegalStateException("Cannot convert form data", e);
+            }
+        }
+
+        private class FormHttpOutputMessage implements HttpOutputMessage {
+
+            private HttpHeaders headers = new HttpHeaders();
+            private ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+            @Override
+            public HttpHeaders getHeaders() {
+                return this.headers;
+            }
+
+            @Override
+            public OutputStream getBody() throws IOException {
+                return this.output;
+            }
+
+            public byte[] getInput() throws IOException {
+                this.output.flush();
+                return this.output.toByteArray();
+            }
+        }
+
+    }
+
+}

@@ -18,6 +18,8 @@ public class NFRequestContext extends RequestContext {
     private static final String BACKEND_API_KEY = "backendApi";
     private static final String BACKEND_GROUP_KEY = "backendGroup";
 
+    private static final String ERROR_HANDLED_KEY = "errorHandled";
+
     static {
         setContextClass(NFRequestContext.class);
     }
@@ -150,6 +152,22 @@ public class NFRequestContext extends RequestContext {
 
     public ApiGroupDto getBackendGroup() {
         return (ApiGroupDto) this.get(BACKEND_GROUP_KEY);
+    }
+
+    /**
+     * sets the flag errorHandled if there is an exception.
+     *
+     * @param handled
+     */
+    public void setErrorHandled(boolean handled) {
+        put("errorHandled", handled);
+    }
+
+    /**
+     * @return true if there is an exception and has been handled.
+     */
+    public boolean errorHandled() {
+        return getBoolean("errorHandled", false);
     }
 
 }

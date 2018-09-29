@@ -40,7 +40,6 @@ public class ZuulException extends Exception {
         this.nStatusCode = nStatusCode;
         this.errorCause = errorCause;
         incrementCounter("ZUUL::EXCEPTION:" + errorCause + ":" + nStatusCode);
-
     }
 
     /**
@@ -55,7 +54,6 @@ public class ZuulException extends Exception {
         this.nStatusCode = nStatusCode;
         this.errorCause = errorCause;
         incrementCounter("ZUUL::EXCEPTION:" + errorCause + ":" + nStatusCode);
-
     }
 
     private static final void incrementCounter(String name) {

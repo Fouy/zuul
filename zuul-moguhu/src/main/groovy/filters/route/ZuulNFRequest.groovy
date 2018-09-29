@@ -14,23 +14,11 @@ import com.netflix.client.http.HttpRequest
 import com.netflix.client.http.HttpResponse
 import com.netflix.hystrix.exception.HystrixRuntimeException
 import com.netflix.niws.client.http.RestClient
-import com.netflix.util.Pair
 import com.sun.jersey.core.util.MultivaluedMapImpl
-import org.apache.http.Header
-import org.apache.http.message.BasicHeader
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.Mockito
-import org.mockito.runners.MockitoJUnitRunner
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import javax.servlet.ServletInputStream
 import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
 import javax.ws.rs.core.MultivaluedMap
 import java.util.zip.GZIPInputStream
 
@@ -79,7 +67,6 @@ class ZuulNFRequest extends ZuulFilter {
     }
 
 
-
     void debug(RestClient restClient, Verb verb, uri, MultivaluedMap<String, String> headers, MultivaluedMap<String, String> params, InputStream requestEntity) {
 
         if (Debug.debugRequest()) {
@@ -110,7 +97,6 @@ class ZuulNFRequest extends ZuulFilter {
             Debug.addRequestDebug("ZUUL:: > ${entity}")
         }
     }
-
 
 
     def HttpResponse forward(RestClient restClient, Verb verb, uri, MultivaluedMap<String, String> headers, MultivaluedMap<String, String> params, InputStream requestEntity) {
@@ -159,7 +145,6 @@ class ZuulNFRequest extends ZuulFilter {
     }
 
 
-
     def MultivaluedMap<String, String> buildZuulRequestQueryParams(HttpServletRequest request) {
 
         Map<String, List<String>> map = HTTPRequestUtils.getInstance().getQueryParams()
@@ -200,7 +185,6 @@ class ZuulNFRequest extends ZuulFilter {
 
         return headers
     }
-
 
 
     Verb getVerb(HttpServletRequest request) {
@@ -296,185 +280,4 @@ class ZuulNFRequest extends ZuulFilter {
         }
     }
 
-
-    @RunWith(MockitoJUnitRunner.class)
-    public static class TestUnit {
-
-        @Mock
-        HttpServletResponse response
-        @Mock
-        HttpServletRequest request
-
-        @Before
-        public void before() {
-            RequestContext.setContextClass(NFRequestContext.class);
-        }
-
-        @Test
-        public void testGetRequestBody() {
-            this.request = Mockito.mock(HttpServletRequest.class)
-            ServletInputStream inn = Mockito.mock(ServletInputStream.class)
-            RequestContext.currentContext.request = this.request
-
-            ZuulNFRequest routeHostRequest = new ZuulNFRequest()
-
-            Mockito.when(request.getInputStream()).thenReturn(inn)
-
-            InputStream inp = routeHostRequest.getRequestBody(request)
-
-            Assert.assertEquals(inp, inn)
-
-            Mockito.when(request.getInputStream()).thenReturn(null)
-
-            inp = routeHostRequest.getRequestBody(request)
-            Assert.assertNull(inp)
-
-
-            Mockito.when(request.getInputStream()).thenReturn(inn)
-            ServletInputStream inn2 = Mockito.mock(ServletInputStream.class)
-            NFRequestContext.currentContext.requestEntity = inn2
-
-            inp = routeHostRequest.getRequestBody(request)
-            Assert.assertNotNull(inp)
-            Assert.assertEquals(inp, inn2)
-
-
-        }
-
-
-
-        @Test
-        public void testHeaderResponse() {
-
-            ZuulNFRequest request = new ZuulNFRequest()
-            Header header = new BasicHeader("test", "test")
-            Header header1 = new BasicHeader("content-length", "100")
-            Header header2 = new BasicHeader("content-encoding", "test")
-
-            Assert.assertTrue(request.isValidHeader(header.name))
-            Assert.assertFalse(request.isValidHeader(header1.name))
-            Assert.assertFalse(request.isValidHeader(header2.name))
-
-
-        }
-
-        @Test
-        public void testbuildZuulRequestHeaders() {
-
-            NFRequestContext.getCurrentContext().unset()
-
-            request = Mockito.mock(HttpServletRequest.class)
-            response = Mockito.mock(HttpServletResponse.class)
-            RequestContext.getCurrentContext().request = request
-            RequestContext.getCurrentContext().response = response
-            ZuulNFRequest request = new ZuulNFRequest()
-            request = Mockito.spy(request)
-
-
-            StringTokenizer st = new StringTokenizer("HEADER1,HEADER2", ",")
-
-            Mockito.when(this.request.getHeaderNames()).thenReturn(st)
-
-            MultivaluedMap<String, String> headers = request.buildZuulRequestHeaders(getRequest())
-            Assert.assertEquals(headers.size(), 3)
-            Assert.assertEquals(headers.getFirst("accept-encoding"), "deflate, gzip")
-
-
-        }
-
-        @Test
-        public void testParseQueryParams() {
-            request = Mockito.mock(HttpServletRequest.class)
-            response = Mockito.mock(HttpServletResponse.class)
-            RequestContext.getCurrentContext().request = request
-            RequestContext.getCurrentContext().response = response
-            ZuulNFRequest request = new ZuulNFRequest()
-
-
-            Mockito.when(this.request.getQueryString()).thenReturn("test=string&ik=moo")
-
-            MultivaluedMap<String, String> map = request.buildZuulRequestQueryParams(this.request);
-
-            Assert.assertEquals(map['test'], ['string'])
-            Assert.assertEquals(map['ik'], ['moo'])
-
-        }
-
-        @Test
-        public void testSetResponse() {
-            request = Mockito.mock(HttpServletRequest.class)
-            response = Mockito.mock(HttpServletResponse.class)
-            HttpResponse zuulResponse = Mockito.mock(HttpResponse.class)
-            RequestContext.getCurrentContext().request = request
-            RequestContext.getCurrentContext().response = response
-            ZuulNFRequest request = new ZuulNFRequest()
-            request = Mockito.spy(request)
-
-
-
-            Map<String, Collection<String>> headers = new HashMap<>();
-            headers.put("test", ["test"])
-            headers.put("content-length", ["100"])
-
-            InputStream inp = Mockito.mock(InputStream.class)
-
-            Mockito.when(zuulResponse.getStatus()).thenReturn(200)
-            Mockito.when(zuulResponse.getInputStream()).thenReturn(inp)
-            Mockito.when(zuulResponse.hasEntity()).thenReturn(true)
-
-            Mockito.when(zuulResponse.headers).thenReturn(headers)
-            request.setResponse(zuulResponse)
-
-            Assert.assertEquals(RequestContext.getCurrentContext().getResponseStatusCode(), 200)
-            Assert.assertNotNull(RequestContext.getCurrentContext().responseDataStream)
-            Assert.assertTrue(RequestContext.getCurrentContext().zuulResponseHeaders.contains(new Pair('test', "test")))
-        }
-
-        @Test
-        public void testShouldFilter() {
-
-            RequestContext.currentContext.setRouteHost(new URL("http://www.moldfarm.com"))
-            ZuulNFRequest filter = new ZuulNFRequest()
-            Assert.assertFalse(filter.shouldFilter())
-        }
-
-        @Test
-        public void testGetVerb() {
-
-            ZuulNFRequest request = new ZuulNFRequest()
-            Verb verb = request.getVerb("get")
-            Assert.assertEquals(Verb.GET, verb)
-            verb = request.getVerb("Get")
-            Assert.assertEquals(Verb.GET, verb)
-
-            verb = request.getVerb("post")
-            Assert.assertEquals(Verb.POST, verb)
-            verb = request.getVerb("POST")
-            Assert.assertEquals(Verb.POST, verb)
-
-            verb = request.getVerb("PUT")
-            Assert.assertEquals(Verb.PUT, verb)
-            verb = request.getVerb("put")
-            Assert.assertEquals(Verb.PUT, verb)
-
-            verb = request.getVerb("OPTIONS")
-            Assert.assertEquals(Verb.OPTIONS, verb)
-            verb = request.getVerb("options")
-            Assert.assertEquals(Verb.OPTIONS, verb)
-
-            verb = request.getVerb("delete")
-            Assert.assertEquals(Verb.DELETE, verb)
-            verb = request.getVerb("Delete")
-            Assert.assertEquals(Verb.DELETE, verb)
-
-            verb = request.getVerb("head")
-            Assert.assertEquals(Verb.HEAD, verb)
-            verb = request.getVerb("HEAD")
-            Assert.assertEquals(Verb.HEAD, verb)
-        }
-    }
-
 }
-
-
-

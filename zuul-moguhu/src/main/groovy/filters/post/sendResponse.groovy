@@ -9,10 +9,6 @@ import com.netflix.config.DynamicBooleanProperty
 import com.netflix.config.DynamicIntProperty
 import com.netflix.config.DynamicPropertyFactory
 import com.netflix.util.Pair
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.mockito.Mockito
-import org.mockito.runners.MockitoJUnitRunner
 
 import javax.servlet.http.HttpServletResponse
 import java.nio.charset.Charset
@@ -169,38 +165,6 @@ class sendResponse extends ZuulFilter {
             if (contentLength != null && !ctx.getResponseGZipped())
                 servletResponse.setContentLength(contentLength)
         }
-    }
-
-    @RunWith(MockitoJUnitRunner.class)
-    public static class TestUnit {
-
-        @Test
-        public void handlesDuplicateHeaders() {
-            RequestContext context = Mockito.mock(RequestContext.class)
-
-            HttpServletResponse response = Mockito.mock(HttpServletResponse.class)
-            Mockito.when(context.getResponse()).thenReturn(response)
-
-            // simulates 3 response headers from origin, 2 of which have the same name
-            Pair cookie1 = new Pair('Set-Cookie', 'NetflixId=hi')
-            Pair cookie2 = new Pair('hello', 'there')
-            Pair cookie3 = new Pair('Set-Cookie', 'SecureNetflixId=hi')
-
-            List<Pair> originHeaders = [cookie1, cookie2, cookie3]
-            Mockito.when(context.getZuulResponseHeaders()).thenReturn(originHeaders)
-
-            RequestContext.testSetCurrentContext(context);
-
-            def filter = new sendResponse();
-
-            filter.addResponseHeaders()
-
-            // verifies that all 3 cookies are set into the response
-            Mockito.verify(response).addHeader(cookie1.first(), cookie1.second())
-            Mockito.verify(response).addHeader(cookie2.first(), cookie2.second())
-            Mockito.verify(response).addHeader(cookie3.first(), cookie3.second())
-        }
-
     }
 
 }
