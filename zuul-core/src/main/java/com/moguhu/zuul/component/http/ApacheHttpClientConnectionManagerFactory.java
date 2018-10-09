@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
  * @author Ryan Baxter
  */
 public interface ApacheHttpClientConnectionManagerFactory {
+
     public static final String HTTP_SCHEME = "http";
     public static final String HTTPS_SCHEME = "https";
 

@@ -5,6 +5,8 @@ import com.moguhu.zuul.component.ProxyRequestHelper;
 import com.moguhu.zuul.component.ZuulProperties;
 import com.moguhu.zuul.component.http.ApacheHttpClientConnectionManagerFactory;
 import com.moguhu.zuul.component.http.ApacheHttpClientFactory;
+import com.moguhu.zuul.component.http.DefaultApacheHttpClientConnectionManagerFactory;
+import com.moguhu.zuul.component.http.DefaultApacheHttpClientFactory;
 import com.moguhu.zuul.context.RequestContext;
 import com.moguhu.zuul.exception.ZuulRuntimeException;
 import org.apache.commons.logging.Log;
@@ -26,13 +28,11 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicHttpEntityEnclosingRequest;
 import org.apache.http.message.BasicHttpRequest;
-import org.springframework.context.event.EventListener;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,7 +44,7 @@ import static com.moguhu.zuul.constants.FilterConstants.SIMPLE_HOST_ROUTING_FILT
 
 /**
  * 路由过滤器, 通过HttpClient 发送固定的URL请求. URL从 {@link RequestContext#getRouteHost()} 中获取.
- *
+ * <p>
  * TODO 需要改造
  */
 public class SimpleHostRoutingFilter extends ZuulFilter {
@@ -62,73 +62,33 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
     private ApacheHttpClientFactory httpClientFactory;
     private HttpClientConnectionManager connectionManager;
     private CloseableHttpClient httpClient;
-    private boolean customHttpClient = false;
 
-    @EventListener
-    public void onPropertyChange(EnvironmentChangeEvent event) {
-        if (!customHttpClient) {
-            boolean createNewClient = false;
-
-            for (String key : event.getKeys()) {
-                if (key.startsWith("zuul.host.")) {
-                    createNewClient = true;
-                    break;
-                }
-            }
-
-            if (createNewClient) {
-                try {
-                    SimpleHostRoutingFilter.this.httpClient.close();
-                } catch (IOException ex) {
-                    logger.error("error closing client", ex);
-                }
-                SimpleHostRoutingFilter.this.httpClient = newClient();
-            }
-        }
-    }
-
-    public SimpleHostRoutingFilter(ProxyRequestHelper helper, ZuulProperties properties,
-                                   ApacheHttpClientConnectionManagerFactory connectionManagerFactory,
-                                   ApacheHttpClientFactory httpClientFactory) {
+    public SimpleHostRoutingFilter(ProxyRequestHelper helper, ZuulProperties properties) {
         this.helper = helper;
         this.hostProperties = properties.getHost();
         this.sslHostnameValidationEnabled = properties.isSslHostnameValidationEnabled();
         this.forceOriginalQueryStringEncoding = properties.isForceOriginalQueryStringEncoding();
-        this.connectionManagerFactory = connectionManagerFactory;
-        this.httpClientFactory = httpClientFactory;
-    }
-
-    public SimpleHostRoutingFilter(ProxyRequestHelper helper, ZuulProperties properties,
-                                   CloseableHttpClient httpClient) {
-        this.helper = helper;
-        this.hostProperties = properties.getHost();
-        this.sslHostnameValidationEnabled = properties.isSslHostnameValidationEnabled();
-        this.forceOriginalQueryStringEncoding = properties.isForceOriginalQueryStringEncoding();
-        this.httpClient = httpClient;
-        this.customHttpClient = true;
+        this.connectionManagerFactory = new DefaultApacheHttpClientConnectionManagerFactory();
+        this.httpClientFactory = new DefaultApacheHttpClientFactory();
     }
 
     @PostConstruct
     private void initialize() {
-        if (!customHttpClient) {
-            this.connectionManager = connectionManagerFactory.newConnectionManager(
-                    !this.sslHostnameValidationEnabled, this.hostProperties.getMaxTotalConnections(),
-                    this.hostProperties.getMaxPerRouteConnections(),
-                    this.hostProperties.getTimeToLive(), this.hostProperties.getTimeUnit(), null);
-            this.httpClient = newClient();
-            this.connectionManagerTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if (SimpleHostRoutingFilter.this.connectionManager == null) {
-                        return;
-                    }
-                    SimpleHostRoutingFilter.this.connectionManager.closeExpiredConnections();
+        this.connectionManager = connectionManagerFactory.newConnectionManager(!this.sslHostnameValidationEnabled,
+                this.hostProperties.getMaxTotalConnections(), this.hostProperties.getMaxPerRouteConnections(),
+                this.hostProperties.getTimeToLive(), this.hostProperties.getTimeUnit(), null);
+        this.httpClient = newClient();
+        this.connectionManagerTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if (SimpleHostRoutingFilter.this.connectionManager == null) {
+                    return;
                 }
-            }, 30000, 5000);
-        }
+                SimpleHostRoutingFilter.this.connectionManager.closeExpiredConnections();
+            }
+        }, 30000, 5000);
     }
 
-    @PreDestroy
     public void stop() {
         this.connectionManagerTimer.cancel();
     }

@@ -6,7 +6,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 /**
  * Factory for creating a new {@link CloseableHttpClient}.
  *
- * @author Ryan Baxter
  */
 public interface ApacheHttpClientFactory {
 
@@ -15,5 +14,5 @@ public interface ApacheHttpClientFactory {
      *
      * @return A {@link HttpClientBuilder}
      */
-    public HttpClientBuilder createBuilder();
+    HttpClientBuilder createBuilder();
 }

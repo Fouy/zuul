@@ -23,20 +23,14 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Default implementation of {@link ApacheHttpClientConnectionManagerFactory}.
- *
- * @author Ryan Baxter
- * @author Michael Wirth
  */
-public class DefaultApacheHttpClientConnectionManagerFactory
-        implements ApacheHttpClientConnectionManagerFactory {
+public class DefaultApacheHttpClientConnectionManagerFactory implements ApacheHttpClientConnectionManagerFactory {
 
-    private static final Log LOG = LogFactory
-            .getLog(DefaultApacheHttpClientConnectionManagerFactory.class);
+    private static final Log LOG = LogFactory.getLog(DefaultApacheHttpClientConnectionManagerFactory.class);
 
     public HttpClientConnectionManager newConnectionManager(boolean disableSslValidation,
                                                             int maxTotalConnections, int maxConnectionsPerRoute) {
-        return newConnectionManager(disableSslValidation, maxTotalConnections,
-                maxConnectionsPerRoute, -1, TimeUnit.MILLISECONDS, null);
+        return newConnectionManager(disableSslValidation, maxTotalConnections, maxConnectionsPerRoute, -1, TimeUnit.MILLISECONDS, null);
     }
 
     @Override
@@ -44,17 +38,13 @@ public class DefaultApacheHttpClientConnectionManagerFactory
                                                             int maxTotalConnections, int maxConnectionsPerRoute, long timeToLive,
                                                             TimeUnit timeUnit, RegistryBuilder registryBuilder) {
         if (registryBuilder == null) {
-            registryBuilder = RegistryBuilder.<ConnectionSocketFactory>create()
-                    .register(HTTP_SCHEME, PlainConnectionSocketFactory.INSTANCE);
+            registryBuilder = RegistryBuilder.<ConnectionSocketFactory>create().register(HTTP_SCHEME, PlainConnectionSocketFactory.INSTANCE);
         }
         if (disableSslValidation) {
             try {
                 final SSLContext sslContext = SSLContext.getInstance("SSL");
-                sslContext.init(null,
-                        new TrustManager[]{new DisabledValidationTrustManager()},
-                        new SecureRandom());
-                registryBuilder.register(HTTPS_SCHEME, new SSLConnectionSocketFactory(
-                        sslContext, NoopHostnameVerifier.INSTANCE));
+                sslContext.init(null, new TrustManager[]{new DisabledValidationTrustManager()}, new SecureRandom());
+                registryBuilder.register(HTTPS_SCHEME, new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE));
             } catch (NoSuchAlgorithmException e) {
                 LOG.warn("Error creating SSLContext", e);
             } catch (KeyManagementException e) {
@@ -65,8 +55,7 @@ public class DefaultApacheHttpClientConnectionManagerFactory
         }
         final Registry<ConnectionSocketFactory> registry = registryBuilder.build();
 
-        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager(
-                registry, null, null, null, timeToLive, timeUnit);
+        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager(registry, null, null, null, timeToLive, timeUnit);
         connectionManager.setMaxTotal(maxTotalConnections);
         connectionManager.setDefaultMaxPerRoute(maxConnectionsPerRoute);
 
@@ -75,13 +64,11 @@ public class DefaultApacheHttpClientConnectionManagerFactory
 
     class DisabledValidationTrustManager implements X509TrustManager {
         @Override
-        public void checkClientTrusted(X509Certificate[] x509Certificates,
-                                       String s) throws CertificateException {
+        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
         }
 
         @Override
-        public void checkServerTrusted(X509Certificate[] x509Certificates,
-                                       String s) throws CertificateException {
+        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
         }
 
         @Override

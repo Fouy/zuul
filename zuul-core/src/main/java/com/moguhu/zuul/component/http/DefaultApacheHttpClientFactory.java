@@ -5,7 +5,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 /**
  * Default implementation of {@link ApacheHttpClientFactory}.
  *
- * @author Ryan Baxter
  */
 public class DefaultApacheHttpClientFactory implements ApacheHttpClientFactory {
 
@@ -15,7 +14,6 @@ public class DefaultApacheHttpClientFactory implements ApacheHttpClientFactory {
      */
     @Override
     public HttpClientBuilder createBuilder() {
-        return HttpClientBuilder.create().disableContentCompression()
-                .disableCookieManagement().useSystemProperties();
+        return HttpClientBuilder.create().disableContentCompression().disableCookieManagement().useSystemProperties();
     }
 }
