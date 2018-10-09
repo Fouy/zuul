@@ -5,9 +5,8 @@ import com.moguhu.zuul.constants.FilterConstants;
 import com.moguhu.zuul.context.RequestContext;
 import com.moguhu.zuul.exception.ZuulException;
 import com.moguhu.zuul.exception.ZuulRuntimeException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -20,11 +19,10 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class SendErrorFilter extends ZuulFilter {
 
-    private static final Log logger = LogFactory.getLog(SendErrorFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(SendErrorFilter.class);
 
     protected static final String SEND_ERROR_FILTER_RAN = "sendErrorFilter.ran";
 
-    @Value("${error.path:/error}")
     private String errorPath;
 
     @Override

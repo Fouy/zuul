@@ -19,8 +19,7 @@ public class ZuulProperties {
      * are added to the ignored headers if Spring Security is present and ignoreSecurityHeaders = true.
      */
     public static final List<String> SECURITY_HEADERS = Arrays.asList("Pragma",
-            "Cache-Control", "X-Frame-Options", "X-Content-Type-Options",
-            "X-XSS-Protection", "Expires");
+            "Cache-Control", "X-Frame-Options", "X-Content-Type-Options", "X-XSS-Protection", "Expires");
 
     /**
      * A common prefix for all routes.
@@ -227,8 +226,7 @@ public class ZuulProperties {
             String location = null;
             String path = text;
             if (text.contains("=")) {
-                String[] values = StringUtils
-                        .trimArrayElements(StringUtils.split(text, "="));
+                String[] values = StringUtils.trimArrayElements(StringUtils.split(text, "="));
                 location = values[1];
                 path = values[0];
             }
@@ -254,8 +252,7 @@ public class ZuulProperties {
         }
 
         public void setLocation(String location) {
-            if (location != null
-                    && (location.startsWith("http:") || location.startsWith("https:"))) {
+            if (location != null && (location.startsWith("http:") || location.startsWith("https:"))) {
                 this.url = location;
             } else {
                 this.serviceId = location;
@@ -270,8 +267,7 @@ public class ZuulProperties {
 
         public Route getRoute(String prefix) {
             return new Route(this.id, this.path, getLocation(), prefix, this.retryable,
-                    isCustomSensitiveHeaders() ? this.sensitiveHeaders : null,
-                    this.stripPrefix);
+                    isCustomSensitiveHeaders() ? this.sensitiveHeaders : null, this.stripPrefix);
         }
 
         public void setSensitiveHeaders(Set<String> headers) {

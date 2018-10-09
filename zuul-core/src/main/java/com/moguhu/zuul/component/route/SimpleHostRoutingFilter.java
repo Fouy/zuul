@@ -1,20 +1,24 @@
 package com.moguhu.zuul.component.route;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Maps;
+import com.moguhu.baize.client.constants.PositionEnum;
+import com.moguhu.baize.client.model.ApiDto;
+import com.moguhu.baize.client.model.ApiGroupDto;
 import com.moguhu.zuul.ZuulFilter;
+import com.moguhu.zuul.component.ApiParamParser;
 import com.moguhu.zuul.component.ProxyRequestHelper;
 import com.moguhu.zuul.component.ZuulProperties;
 import com.moguhu.zuul.component.http.ApacheHttpClientConnectionManagerFactory;
 import com.moguhu.zuul.component.http.ApacheHttpClientFactory;
 import com.moguhu.zuul.component.http.DefaultApacheHttpClientConnectionManagerFactory;
 import com.moguhu.zuul.component.http.DefaultApacheHttpClientFactory;
+import com.moguhu.zuul.context.NFRequestContext;
 import com.moguhu.zuul.context.RequestContext;
+import com.moguhu.zuul.exception.ZuulException;
 import com.moguhu.zuul.exception.ZuulRuntimeException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.Header;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
+import com.moguhu.zuul.util.HostsUtil;
+import org.apache.http.*;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -28,16 +32,16 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicHttpEntityEnclosingRequest;
 import org.apache.http.message.BasicHttpRequest;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.moguhu.zuul.constants.FilterConstants.ROUTE_TYPE;
 import static com.moguhu.zuul.constants.FilterConstants.SIMPLE_HOST_ROUTING_FILTER_ORDER;
@@ -49,12 +53,11 @@ import static com.moguhu.zuul.constants.FilterConstants.SIMPLE_HOST_ROUTING_FILT
  */
 public class SimpleHostRoutingFilter extends ZuulFilter {
 
-    private static final Log logger = LogFactory.getLog(SimpleHostRoutingFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(SimpleHostRoutingFilter.class);
 
     private final Timer connectionManagerTimer = new Timer("SimpleHostRoutingFilter.connectionManagerTimer", true);
 
     private boolean sslHostnameValidationEnabled;
-    private boolean forceOriginalQueryStringEncoding;
 
     private ProxyRequestHelper helper;
     private ZuulProperties.Host hostProperties;
@@ -63,16 +66,16 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
     private HttpClientConnectionManager connectionManager;
     private CloseableHttpClient httpClient;
 
-    public SimpleHostRoutingFilter(ProxyRequestHelper helper, ZuulProperties properties) {
-        this.helper = helper;
+    public SimpleHostRoutingFilter() {
+        ZuulProperties properties = new ZuulProperties();
+        this.helper = new ProxyRequestHelper();
         this.hostProperties = properties.getHost();
         this.sslHostnameValidationEnabled = properties.isSslHostnameValidationEnabled();
-        this.forceOriginalQueryStringEncoding = properties.isForceOriginalQueryStringEncoding();
         this.connectionManagerFactory = new DefaultApacheHttpClientConnectionManagerFactory();
         this.httpClientFactory = new DefaultApacheHttpClientFactory();
+        initialize();
     }
 
-    @PostConstruct
     private void initialize() {
         this.connectionManager = connectionManagerFactory.newConnectionManager(!this.sslHostnameValidationEnabled,
                 this.hostProperties.getMaxTotalConnections(), this.hostProperties.getMaxPerRouteConnections(),
@@ -105,31 +108,72 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
 
     @Override
     public boolean shouldFilter() {
-        return RequestContext.getCurrentContext().getRouteHost() != null
-                && RequestContext.getCurrentContext().sendZuulResponse();
+        return RequestContext.getCurrentContext().getRouteHost() != null && RequestContext.getCurrentContext().sendZuulResponse();
     }
 
     @Override
     public Object run() {
-        RequestContext context = RequestContext.getCurrentContext();
-        HttpServletRequest request = context.getRequest();
-        MultiValueMap<String, String> headers = this.helper.buildZuulRequestHeaders(request);
-        MultiValueMap<String, String> params = this.helper.buildZuulRequestQueryParams(request);
-        String verb = getVerb(request);
-        InputStream requestEntity = getRequestBody(request);
-        if (request.getContentLength() < 0) {
-            context.setChunkedRequestBody();
-        }
-
-        String uri = this.helper.buildZuulRequestURI(request);
-        this.helper.addIgnoredHeaders();
-
+        NFRequestContext ctx = NFRequestContext.getCurrentContext();
+        HttpServletRequest request = ctx.getRequest();
         try {
+            ApiGroupDto group = ctx.getBackendGroup();
+            String hostsStr = group.getHosts();
+            String host = "";
+            if (org.apache.commons.lang.StringUtils.isNotEmpty(hostsStr)) {
+                List<String> hosts = Arrays.asList(hostsStr.split(","));
+                host = HostsUtil.getRandomNode(hosts);
+            }
+            if (org.apache.commons.lang.StringUtils.isEmpty(host)) {
+                throw new ZuulException("Host was empty", HttpStatus.SC_OK, "");
+            }
+
+            ApiDto api = ctx.getBackendApi();
+            Map<String, Map<String, String>> backendParams = ctx.getBackendParams();
+            // 后端请求URL
+            String backendUrl = api.getProtocol() + "://" + host + api.getPath();
+
+            // 后端参数组装
+            String getUrlTail = "";
+            Map<String, String> headers = Maps.newHashMap();
+            Map<String, String> params = Maps.newHashMap();
+            Iterator<Map.Entry<String, Map<String, String>>> iterator = backendParams.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Map<String, String>> next = iterator.next();
+                String paramName = next.getKey();
+                Map<String, String> valueMap = next.getValue();
+                String position = valueMap.get(ApiParamParser.MAPPING_METHOD_KEY);
+                String value = valueMap.get(ApiParamParser.MAPPING_VALUE_KEY);
+                if (PositionEnum.HEAD.name().equals(position)) {
+                    headers.put(paramName, value);
+                } else if (PositionEnum.POST.name().equals(position)) {
+                    params.put(paramName, value);
+                } else if (PositionEnum.GET.name().equals(position)) {
+                    if (org.apache.commons.lang.StringUtils.isEmpty(getUrlTail)) {
+                        getUrlTail = paramName + "=" + value;
+                    } else {
+                        getUrlTail = getUrlTail + "&" + paramName + "=" + value;
+                    }
+                } else {
+                    logger.warn("not supported parameter type of {}, it has been ignored.", position);
+                }
+            }
+            String uri = backendUrl + getUrlTail;
+
+            // TODO 所有的响应头都要返回, 不可以吃掉上游服务器返回的数据
+            String verb = Splitter.on(",").splitToList(api.getMethods()).get(0); // 多种Method 取第一种
+            InputStream requestEntity = getRequestBody(request);
+            if (request.getContentLength() < 0) {
+                ctx.setChunkedRequestBody();
+            }
+
             CloseableHttpResponse response = forward(this.httpClient, verb, uri, request, headers, params, requestEntity);
             setResponse(response);
-        } catch (Exception ex) {
-            throw new ZuulRuntimeException(ex);
+
+        } catch (Exception e) {
+            logger.error("API Mapping check error, {}", e);
+            throw new ZuulRuntimeException(e);
         }
+
         return null;
     }
 
@@ -147,9 +191,8 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
     }
 
     private CloseableHttpResponse forward(CloseableHttpClient httpclient, String verb,
-                                          String uri, HttpServletRequest request, MultiValueMap<String, String> headers,
-                                          MultiValueMap<String, String> params, InputStream requestEntity)
-            throws Exception {
+                                          String uri, HttpServletRequest request, Map<String, String> headers,
+                                          Map<String, String> params, InputStream requestEntity) throws Exception {
         Map<String, Object> info = this.helper.debug(verb, uri, headers, params, requestEntity);
         URL host = RequestContext.getCurrentContext().getRouteHost();
         HttpHost httpHost = getHttpHost(host);
@@ -162,83 +205,64 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
         }
 
         InputStreamEntity entity = new InputStreamEntity(requestEntity, contentLength, contentType);
-        HttpRequest httpRequest = buildHttpRequest(verb, uri, entity, headers, params, request);
+        HttpRequest httpRequest = buildHttpRequest(verb, uri, entity, headers);
         try {
             logger.debug(httpHost.getHostName() + " " + httpHost.getPort() + " " + httpHost.getSchemeName());
             CloseableHttpResponse zuulResponse = forwardRequest(httpclient, httpHost, httpRequest);
-            this.helper.appendDebug(info, zuulResponse.getStatusLine().getStatusCode(),
-                    revertHeaders(zuulResponse.getAllHeaders()));
+            this.helper.appendDebug(info, zuulResponse.getStatusLine().getStatusCode(), revertHeaders(zuulResponse.getAllHeaders()));
             return zuulResponse;
         } finally {
             // When HttpClient instance is no longer needed,
-            // shut down the connection manager to ensure
-            // immediate deallocation of all system resources
+            // shut down the connection manager to ensure immediate deallocation of all system resources
             // httpclient.getConnectionManager().shutdown();
         }
     }
 
-    protected HttpRequest buildHttpRequest(String verb, String uri,
-                                           InputStreamEntity entity, MultiValueMap<String, String> headers,
-                                           MultiValueMap<String, String> params, HttpServletRequest request) {
+    protected HttpRequest buildHttpRequest(String verb, String uri, InputStreamEntity entity, Map<String, String> headers) {
         HttpRequest httpRequest;
-        String uriWithQueryString = uri + (this.forceOriginalQueryStringEncoding
-                ? getEncodedQueryString(request) : this.helper.getQueryString(params));
-
         switch (verb.toUpperCase()) {
             case "POST":
-                HttpPost httpPost = new HttpPost(uriWithQueryString);
+                HttpPost httpPost = new HttpPost(uri);
                 httpRequest = httpPost;
                 httpPost.setEntity(entity);
                 break;
             case "PUT":
-                HttpPut httpPut = new HttpPut(uriWithQueryString);
+                HttpPut httpPut = new HttpPut(uri);
                 httpRequest = httpPut;
                 httpPut.setEntity(entity);
                 break;
             case "PATCH":
-                HttpPatch httpPatch = new HttpPatch(uriWithQueryString);
+                HttpPatch httpPatch = new HttpPatch(uri);
                 httpRequest = httpPatch;
                 httpPatch.setEntity(entity);
                 break;
             case "DELETE":
-                BasicHttpEntityEnclosingRequest entityRequest = new BasicHttpEntityEnclosingRequest(
-                        verb, uriWithQueryString);
+                BasicHttpEntityEnclosingRequest entityRequest = new BasicHttpEntityEnclosingRequest(verb, uri);
                 httpRequest = entityRequest;
                 entityRequest.setEntity(entity);
                 break;
             default:
-                httpRequest = new BasicHttpRequest(verb, uriWithQueryString);
-                logger.debug(uriWithQueryString);
+                httpRequest = new BasicHttpRequest(verb, uri);
+                logger.debug(uri);
         }
 
         httpRequest.setHeaders(convertHeaders(headers));
         return httpRequest;
     }
 
-    private String getEncodedQueryString(HttpServletRequest request) {
-        String query = request.getQueryString();
-        return (query != null) ? "?" + query : "";
-    }
-
-    private MultiValueMap<String, String> revertHeaders(Header[] headers) {
-        MultiValueMap<String, String> map = new LinkedMultiValueMap<String, String>();
+    private Map<String, String> revertHeaders(Header[] headers) {
+        Map<String, String> map = Maps.newHashMap();
         for (Header header : headers) {
             String name = header.getName();
             if (!map.containsKey(name)) {
-                map.put(name, new ArrayList<String>());
+                map.put(name, header.getValue());
             }
-            map.get(name).add(header.getValue());
         }
         return map;
     }
 
-    private Header[] convertHeaders(MultiValueMap<String, String> headers) {
-        List<Header> list = new ArrayList<>();
-        for (String name : headers.keySet()) {
-            for (String value : headers.get(name)) {
-                list.add(new BasicHeader(name, value));
-            }
-        }
+    private Header[] convertHeaders(Map<String, String> headers) {
+        List<Header> list = headers.keySet().stream().map(name -> new BasicHeader(name, headers.get(name))).collect(Collectors.toList());
         return list.toArray(new BasicHeader[0]);
     }
 
@@ -260,11 +284,6 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
             // no requestBody is ok.
         }
         return requestEntity;
-    }
-
-    private String getVerb(HttpServletRequest request) {
-        String sMethod = request.getMethod();
-        return sMethod.toUpperCase();
     }
 
     private void setResponse(HttpResponse response) throws IOException {

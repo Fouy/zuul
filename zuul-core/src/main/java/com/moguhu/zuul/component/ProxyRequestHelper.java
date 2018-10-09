@@ -70,8 +70,7 @@ public class ProxyRequestHelper {
         return request.getCharacterEncoding() != null ? request.getCharacterEncoding() : WebUtils.DEFAULT_CHARACTER_ENCODING;
     }
 
-    public MultiValueMap<String, String> buildZuulRequestQueryParams(
-            HttpServletRequest request) {
+    public MultiValueMap<String, String> buildZuulRequestQueryParams(HttpServletRequest request) {
         Map<String, List<String>> map = HTTPRequestUtils.getInstance().getQueryParams();
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         if (map == null) {
@@ -85,8 +84,13 @@ public class ProxyRequestHelper {
         return params;
     }
 
-    public MultiValueMap<String, String> buildZuulRequestHeaders(
-            HttpServletRequest request) {
+    /**
+     * 构建requestHeaders (当前版本, 不支持header 透传, 所有header 将会被网关过滤掉)
+     *
+     * @param request
+     * @return
+     */
+    public MultiValueMap<String, String> buildZuulRequestHeaders(HttpServletRequest request) {
         RequestContext context = RequestContext.getCurrentContext();
         MultiValueMap<String, String> headers = new HttpHeaders();
         Enumeration<String> headerNames = request.getHeaderNames();
@@ -110,8 +114,7 @@ public class ProxyRequestHelper {
         return headers;
     }
 
-    public void setResponse(int status, InputStream entity,
-                            MultiValueMap<String, String> headers) throws IOException {
+    public void setResponse(int status, InputStream entity, Map<String, String> headers) throws IOException {
         RequestContext context = RequestContext.getCurrentContext();
         context.setResponseStatusCode(status);
         if (entity != null) {
@@ -119,19 +122,16 @@ public class ProxyRequestHelper {
         }
 
         boolean isOriginResponseGzipped = false;
-        for (Entry<String, List<String>> header : headers.entrySet()) {
+        for (Entry<String, String> header : headers.entrySet()) {
             String name = header.getKey();
-            for (String value : header.getValue()) {
-                if (name.equalsIgnoreCase(HttpHeaders.CONTENT_ENCODING)
-                        && HTTPRequestUtils.getInstance().isGzipped(value)) {
-                    isOriginResponseGzipped = true;
-                }
-                if (name.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH)) {
-                    context.setOriginContentLength(value);
-                }
-                if (isIncludedHeader(name)) {
-                    context.addZuulResponseHeader(name, value);
-                }
+            if (name.equalsIgnoreCase(HttpHeaders.CONTENT_ENCODING) && HTTPRequestUtils.getInstance().isGzipped(header.getValue())) {
+                isOriginResponseGzipped = true;
+            }
+            if (name.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH)) {
+                context.setOriginContentLength(header.getValue());
+            }
+            if (isIncludedHeader(name)) {
+                context.addZuulResponseHeader(name, header.getValue());
             }
         }
         context.setResponseGZipped(isOriginResponseGzipped);
@@ -175,8 +175,7 @@ public class ProxyRequestHelper {
         }
     }
 
-    public Map<String, Object> debug(String verb, String uri,
-                                     MultiValueMap<String, String> headers, MultiValueMap<String, String> params,
+    public Map<String, Object> debug(String verb, String uri, Map<String, String> headers, Map<String, String> params,
                                      InputStream requestEntity) throws IOException {
         Map<String, Object> info = new LinkedHashMap<>();
         return info;
@@ -193,8 +192,7 @@ public class ProxyRequestHelper {
         return !request.getContentType().toLowerCase().contains("multipart");
     }
 
-    public void appendDebug(Map<String, Object> info, int status,
-                            MultiValueMap<String, String> headers) {
+    public void appendDebug(Map<String, Object> info, int status, Map<String, String> headers) {
     }
 
     /**
@@ -217,8 +215,7 @@ public class ProxyRequestHelper {
                 query.append(param);
                 if (!"".equals(value)) { // don't add =, if original is ?wsdl, output is not ?wsdl=
                     String key = param;
-                    // if form feed is already part of param name double
-                    // since form feed is used as the colon replacement below
+                    // if form feed is already part of param name double since form feed is used as the colon replacement below
                     if (key.contains("\f")) {
                         key = (key.replaceAll("\f", "\f\f"));
                     }
