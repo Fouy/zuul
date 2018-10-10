@@ -1,6 +1,7 @@
 package com.moguhu.zuul.component.route;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.moguhu.baize.client.constants.PositionEnum;
 import com.moguhu.baize.client.model.ApiDto;
@@ -19,6 +20,7 @@ import com.moguhu.zuul.context.RequestContext;
 import com.moguhu.zuul.exception.ZuulException;
 import com.moguhu.zuul.exception.ZuulRuntimeException;
 import com.moguhu.zuul.util.HostsUtil;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.http.*;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -110,9 +112,11 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
     @Override
     public boolean shouldFilter() {
         ApiDto api = NFRequestContext.getCurrentContext().getBackendApi();
-        for (ComponentDto componentDto : api.getComponentList()) {
-            if (componentDto.getCompCode().equals(componentName())) {
-                return true;
+        if (CollectionUtils.isNotEmpty(api.getComponentList())) {
+            for (ComponentDto componentDto : api.getComponentList()) {
+                if (componentDto != null && componentDto.getCompCode().equalsIgnoreCase(componentName())) {
+                    return true;
+                }
             }
         }
         return false;
@@ -137,7 +141,14 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
             ApiDto api = ctx.getBackendApi();
             Map<String, Map<String, String>> backendParams = ctx.getBackendParams();
             // 后端请求URL
-            String backendUrl = api.getProtocol() + "://" + host + api.getPath();
+//            String backendUrl = api.getProtocol() + "://" + host + api.getPath();
+            String[] hostAndport = host.split(":");
+            host = hostAndport[0];
+            int port = 80;
+            if (hostAndport.length > 1) {
+                port = Integer.parseInt(hostAndport[1]);
+            }
+            RequestContext.getCurrentContext().setRouteHost(new URL(api.getProtocol(), host, port, ""));
 
             // 后端参数组装
             String getUrlTail = "";
@@ -164,9 +175,9 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
                     logger.warn("not supported parameter type of {}, it has been ignored.", position);
                 }
             }
-            String uri = backendUrl + getUrlTail;
+            String uri = api.getPath() + getUrlTail;
 
-            // TODO 所有的响应头都要返回, 不可以吃掉上游服务器返回的数据
+            // 所有的响应头都要返回, 不可以吃掉上游服务器返回的数据
             String verb = Splitter.on(",").splitToList(api.getMethods()).get(0); // 多种Method 取第一种
             InputStream requestEntity = getRequestBody(request);
             if (request.getContentLength() < 0) {
@@ -269,7 +280,10 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
     }
 
     private Header[] convertHeaders(Map<String, String> headers) {
-        List<Header> list = headers.keySet().stream().map(name -> new BasicHeader(name, headers.get(name))).collect(Collectors.toList());
+        List<Header> list = Lists.newArrayList();
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            list.add(new BasicHeader(entry.getKey(), entry.getValue()));
+        }
         return list.toArray(new BasicHeader[0]);
     }
 

@@ -14,10 +14,9 @@ import com.moguhu.zuul.plugins.ServoMonitor;
 import com.moguhu.zuul.plugins.Tracer;
 import com.moguhu.zuul.scriptManager.ZuulFilterPoller;
 import com.moguhu.zuul.stats.monitoring.MonitorRegistry;
+import com.moguhu.zuul.zookeeper.ApiManager;
 import com.moguhu.zuul.zookeeper.curator.ApiTreeCacheListener;
 import com.moguhu.zuul.zookeeper.curator.CuratorClient;
-import com.netflix.appinfo.ApplicationInfoManager;
-import com.netflix.appinfo.InstanceInfo;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
@@ -126,12 +125,20 @@ public class StartServer implements ServletContextListener {
 
         // synchronze manager components
         startZuulFilterPoller();
+
+        // synchronze api manager
+        startApiManager();
         logger.info("Groovy Filter file manager started");
     }
 
     private void startZuulFilterPoller() {
         ZuulFilterPoller.start();
         logger.info("ZuulFilterPoller Started.");
+    }
+
+    private void startApiManager() {
+        ApiManager.start();
+        logger.info("ApiManager Started.");
     }
 
 }

@@ -65,7 +65,7 @@ public abstract class ZuulFilter implements IZuulFilter, Comparable<ZuulFilter> 
      * 获取组件code
      */
     public String componentName() {
-        return "zuul." + this.getClass().getSimpleName() + "." + filterType();
+        return "zuul:" + this.getClass().getSimpleName() + ":" + filterType();
     }
 
     /**

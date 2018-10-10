@@ -47,7 +47,7 @@ public class FilterConstants {
     /**
      * api 匹配过滤器, 优先级最高
      */
-    public static final int API_MAPPING_FILTER_ORDER = Integer.MIN_VALUE;
+    public static final int API_MAPPING_FILTER_ORDER = -100;
 
     /**
      * filter order for {@link Servlet30WrapperFilter#filterOrder()}

@@ -6,6 +6,7 @@ import com.moguhu.zuul.ZuulFilter;
 import com.moguhu.zuul.constants.FilterConstants;
 import com.moguhu.zuul.context.NFRequestContext;
 import com.moguhu.zuul.context.RequestContext;
+import org.apache.commons.collections.CollectionUtils;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -37,9 +38,11 @@ public class DebugFilter extends ZuulFilter {
         }
 
         ApiDto api = NFRequestContext.getCurrentContext().getBackendApi();
-        for (ComponentDto componentDto : api.getComponentList()) {
-            if (componentDto.getCompCode().equals(componentName())) {
-                return true;
+        if (CollectionUtils.isNotEmpty(api.getComponentList())) {
+            for (ComponentDto componentDto : api.getComponentList()) {
+                if (componentDto != null && componentDto.getCompCode().equals(componentName())) {
+                    return true;
+                }
             }
         }
         return false;

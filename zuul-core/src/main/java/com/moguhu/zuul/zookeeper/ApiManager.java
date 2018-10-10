@@ -11,8 +11,11 @@ import com.moguhu.zuul.scriptManager.ZuulFilterPoller;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
@@ -30,11 +33,88 @@ import java.util.regex.Pattern;
  */
 public class ApiManager {
 
+    private static final Logger logger = LoggerFactory.getLogger(ApiManager.class);
+
     static DynamicStringProperty gateServiceCode = DynamicPropertyFactory.getInstance().getStringProperty(ZuulConstants.GATE_SERVICE_CODE, null);
 
     private static final Map<String, ApiGroupDto> groupMap = new ConcurrentHashMap<>();
 
     private static final String URI_PATTERN = "/(.*?)/(.*?)/(.*)";
+
+    private static ApiManager INSTANCE;
+    private volatile boolean running = true;
+
+    private Thread checkerThread = new Thread("ApiManager") {
+        @Override
+        public void run() {
+            while (running) {
+                try {
+                    if (MapUtils.isNotEmpty(groupMap)) {
+                        groupMap.forEach((groupId, apiGroupDto) -> {
+                            if (null != apiGroupDto && CollectionUtils.isNotEmpty(apiGroupDto.getCompIds())) {
+                                List<ComponentDto> componentList = Lists.newArrayList();
+
+                                List<Long> compIds = apiGroupDto.getCompIds();
+                                if (CollectionUtils.isNotEmpty(compIds)) {
+                                    compIds.forEach(compId -> {
+                                        ComponentDto component = ZuulFilterPoller.getComponent(String.valueOf(compId));
+                                        if (null != component) {
+                                            componentList.add(component);
+                                        }
+                                    });
+                                }
+                                apiGroupDto.setComponentList(componentList);
+
+                                if (CollectionUtils.isNotEmpty(apiGroupDto.getApiList())) {
+                                    apiGroupDto.getApiList().forEach(apiDto -> {
+                                        List<ComponentDto> apiComponentList = Lists.newArrayList();
+
+                                        List<Long> apiCompIds = apiDto.getCompIds();
+                                        if (CollectionUtils.isNotEmpty(apiCompIds)) {
+                                            apiCompIds.forEach(compId -> {
+                                                ComponentDto component = ZuulFilterPoller.getComponent(String.valueOf(compId));
+                                                if (null != component) {
+                                                    apiComponentList.add(component);
+                                                }
+                                            });
+                                        }
+                                        apiDto.setComponentList(apiComponentList);
+                                    });
+                                }
+
+                            }
+                        });
+                    }
+                } catch (Throwable e) {
+                    logger.error("ApiManager run error! {}", e);
+                }
+
+                try {
+                    sleep(2000);
+                } catch (InterruptedException e) {
+                    logger.error("ApiManager sleep error! {}", e);
+                }
+            }
+        }
+
+    };
+
+    /**
+     * 系统初始化时, 调用一次
+     */
+    public static void start() {
+        if (INSTANCE == null) {
+            synchronized (ApiManager.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new ApiManager();
+                }
+            }
+        }
+    }
+
+    private ApiManager() {
+        checkerThread.start();
+    }
 
     public static void putApi(ApiGroupDto group, ApiDto api) {
         if (null == group || null == api) {
