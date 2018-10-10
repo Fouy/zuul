@@ -32,8 +32,6 @@ public class ZuulConstants {
     public static final String ZUUL_HTTPCLIENT = "zuul.httpClient.";
 
 
-    public static final String ZUUL_DEBUG_REQUEST = "zuul.debug.request";
-    public static final String ZUUL_DEBUG_PARAMETER = "zuul.debug.parameter";
     public static final String ZUUL_ROUTER_ALT_ROUTE_VIP = "zuul.router.alt.route.vip";
     public static final String ZUUL_ROUTER_ALT_ROUTE_HOST = "zuul.router.alt.route.host";
     public static final String ZUUL_ROUTER_ALT_ROUTE_PERMYRIAD = "zuul.router.alt.route.permyriad";

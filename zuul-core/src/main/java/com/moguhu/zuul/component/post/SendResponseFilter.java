@@ -9,8 +9,8 @@ import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.util.Pair;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.ReflectionUtils;
 
 import javax.servlet.http.HttpServletResponse;
@@ -21,11 +21,11 @@ import java.util.zip.GZIPInputStream;
 import static com.moguhu.zuul.constants.FilterConstants.*;
 
 /**
- * 后置过滤器, 将代理的 response 写入
+ * 后置过滤器, 将上游服务器的response 写入
  */
 public class SendResponseFilter extends ZuulFilter {
 
-    private static final Log log = LogFactory.getLog(SendResponseFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(SendResponseFilter.class);
 
     private static DynamicBooleanProperty INCLUDE_DEBUG_HEADER = DynamicPropertyFactory
             .getInstance().getBooleanProperty(ZuulConstants.ZUUL_INCLUDE_DEBUG_HEADER, false);
@@ -124,7 +124,7 @@ public class SendResponseFilter extends ZuulFilter {
                             try {
                                 inputStream = new GZIPInputStream(is);
                             } catch (java.util.zip.ZipException ex) {
-                                log.debug("gzip expected but not received assuming unencoded response "
+                                logger.debug("gzip expected but not received assuming unencoded response "
                                         + RequestContext.getCurrentContext().getRequest().getRequestURL().toString());
                                 inputStream = is;
                             }
@@ -152,7 +152,7 @@ public class SendResponseFilter extends ZuulFilter {
                 try {
                     is.close();
                 } catch (Exception ex) {
-                    log.warn("Error while closing upstream input stream", ex);
+                    logger.warn("Error while closing upstream input stream", ex);
                 }
             }
 
@@ -164,7 +164,7 @@ public class SendResponseFilter extends ZuulFilter {
                 outStream.flush();
                 // The container will close the stream for us
             } catch (IOException ex) {
-                log.warn("Error while sending response to client: " + ex.getMessage());
+                logger.warn("Error while sending response to client: " + ex.getMessage());
             }
         }
     }

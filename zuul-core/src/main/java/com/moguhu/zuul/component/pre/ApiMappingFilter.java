@@ -13,9 +13,9 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 /**
- * URL mapping 验证组件
+ * URL mapping 验证组件, 映射匹配 API Manager 中管理的API
  * <p>
- * 映射匹配 API Manager 中管理的API
+ * 1. 所有Filter 的入口, 强制过滤
  * <p>
  * Created by xuefeihu on 18/9/21.
  */

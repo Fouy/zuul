@@ -12,6 +12,8 @@ import java.lang.reflect.Field;
 
 /**
  * 前置过滤器, Servlet 3.0 兼容 wrapper, Zuul 默认只支持 Servlet 2.5.
+ * <p>
+ * 1.对所有的请求生效
  */
 public class Servlet30WrapperFilter extends ZuulFilter {
 
@@ -39,7 +41,7 @@ public class Servlet30WrapperFilter extends ZuulFilter {
 
     @Override
     public boolean shouldFilter() {
-        return true; // TODO: only if in servlet 3.0 env
+        return true; // 对所有的请求生效
     }
 
     @Override

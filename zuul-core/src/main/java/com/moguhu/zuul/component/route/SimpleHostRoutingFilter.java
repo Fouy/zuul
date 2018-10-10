@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.moguhu.baize.client.constants.PositionEnum;
 import com.moguhu.baize.client.model.ApiDto;
 import com.moguhu.baize.client.model.ApiGroupDto;
+import com.moguhu.baize.client.model.ComponentDto;
 import com.moguhu.zuul.ZuulFilter;
 import com.moguhu.zuul.component.ApiParamParser;
 import com.moguhu.zuul.component.ProxyRequestHelper;
@@ -47,9 +48,9 @@ import static com.moguhu.zuul.constants.FilterConstants.ROUTE_TYPE;
 import static com.moguhu.zuul.constants.FilterConstants.SIMPLE_HOST_ROUTING_FILTER_ORDER;
 
 /**
- * 路由过滤器, 通过HttpClient 发送固定的URL请求. URL从 {@link RequestContext#getRouteHost()} 中获取.
+ * 后端基于HOST路由组件
  * <p>
- * TODO 需要改造
+ * 1. 需要baize后台配合使用
  */
 public class SimpleHostRoutingFilter extends ZuulFilter {
 
@@ -108,7 +109,13 @@ public class SimpleHostRoutingFilter extends ZuulFilter {
 
     @Override
     public boolean shouldFilter() {
-        return RequestContext.getCurrentContext().getRouteHost() != null && RequestContext.getCurrentContext().sendZuulResponse();
+        ApiDto api = NFRequestContext.getCurrentContext().getBackendApi();
+        for (ComponentDto componentDto : api.getComponentList()) {
+            if (componentDto.getCompCode().equals(componentName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

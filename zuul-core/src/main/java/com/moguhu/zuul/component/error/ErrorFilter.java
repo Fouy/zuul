@@ -14,9 +14,9 @@ import java.util.Map;
 /**
  * Generate a error response while there is an error.
  */
-public class ErrorResponse extends ZuulFilter {
+public class ErrorFilter extends ZuulFilter {
 
-    private static final Logger logger = LoggerFactory.getLogger(ErrorResponse.class);
+    private static final Logger logger = LoggerFactory.getLogger(ErrorFilter.class);
 
     @Override
     public String filterType() {
@@ -67,7 +67,7 @@ public class ErrorResponse extends ZuulFilter {
             ctx.setSendZuulResponse(false);
             ctx.setResponseBody(generateJson(ex));
         } finally {
-            ctx.setErrorHandled(true); //ErrorResponse was handled
+            ctx.setErrorHandled(true); //ErrorFilter was handled
             return null;
         }
     }

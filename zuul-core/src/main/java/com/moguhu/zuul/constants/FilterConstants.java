@@ -1,7 +1,7 @@
 package com.moguhu.zuul.constants;
 
-import com.moguhu.zuul.component.error.SendErrorFilter;
-import com.moguhu.zuul.component.pre.*;
+import com.moguhu.zuul.component.pre.DebugFilter;
+import com.moguhu.zuul.component.pre.Servlet30WrapperFilter;
 import com.moguhu.zuul.component.route.SimpleHostRoutingFilter;
 import com.moguhu.zuul.context.RequestContext;
 
@@ -11,15 +11,6 @@ import com.moguhu.zuul.context.RequestContext;
 public class FilterConstants {
 
     // KEY 常量 -----------------------------------
-    /**
-     * Zuul {@link RequestContext} key for use in {@link SendForwardFilter}
-     */
-    public static final String FORWARD_TO_KEY = "forward.to";
-
-    /**
-     * Zuul {@link RequestContext} key for use in TODO: determine use
-     */
-    public static final String PROXY_KEY = "proxy";
 
     /**
      * Zuul {@link RequestContext} key for use in {@link RibbonRoutingFilter}
@@ -54,7 +45,7 @@ public class FilterConstants {
 
     // ORDER 常量 -----------------------------------
     /**
-     * Filter Order for {@link ApiMappingFilter#filterOrder()}
+     * api 匹配过滤器, 优先级最高
      */
     public static final int API_MAPPING_FILTER_ORDER = Integer.MIN_VALUE;
 
@@ -64,19 +55,9 @@ public class FilterConstants {
     public static final int SERVLET_30_WRAPPER_FILTER_ORDER = -2;
 
     /**
-     * Filter Order for {@link FormBodyWrapperFilter#filterOrder()}
-     */
-    public static final int FORM_BODY_WRAPPER_FILTER_ORDER = -1;
-
-    /**
      * Filter Order for {@link DebugFilter#filterOrder()}
      */
     public static final int DEBUG_FILTER_ORDER = 1;
-
-    /**
-     * Filter Order for {@link PreDecorationFilter}
-     */
-    public static final int PRE_DECORATION_FILTER_ORDER = 5;
 
     /**
      * Filter Order for {@link RibbonRoutingFilter#filterOrder()}
@@ -99,7 +80,7 @@ public class FilterConstants {
     public static final int SIMPLE_HOST_ROUTING_FILTER_ORDER = 100;
 
     /**
-     * Filter Order for {@link SendErrorFilter#filterOrder()}
+     * 异常过滤器优先级
      */
     public static final int SEND_ERROR_FILTER_ORDER = 0;
 

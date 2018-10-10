@@ -1,25 +1,22 @@
 package com.moguhu.zuul.component.pre;
 
+import com.moguhu.baize.client.model.ApiDto;
+import com.moguhu.baize.client.model.ComponentDto;
 import com.moguhu.zuul.ZuulFilter;
 import com.moguhu.zuul.constants.FilterConstants;
-import com.moguhu.zuul.constants.ZuulConstants;
+import com.moguhu.zuul.context.NFRequestContext;
 import com.moguhu.zuul.context.RequestContext;
-import com.netflix.config.DynamicBooleanProperty;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.config.DynamicStringProperty;
 
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * 前置过滤器 {@link ZuulFilter}, 当请求参数设置了: debug=true, 会打开调试模式, 即设置 {@link RequestContext} 的 debug 属性为 true
+ * 前置-debug过滤器
+ * <p>
+ * 启用方式如下:
+ * 1. 请求头中设置了debug=true;
+ * 2. baize管理平台显示启用组件; 即设置 {@link RequestContext} 的 debug 属性为 true
  */
 public class DebugFilter extends ZuulFilter {
-
-    private static final DynamicBooleanProperty ROUTING_DEBUG = DynamicPropertyFactory
-            .getInstance().getBooleanProperty(ZuulConstants.ZUUL_DEBUG_REQUEST, false);
-
-    private static final DynamicStringProperty DEBUG_PARAMETER = DynamicPropertyFactory
-            .getInstance().getStringProperty(ZuulConstants.ZUUL_DEBUG_PARAMETER, "debug");
 
     @Override
     public String filterType() {
@@ -33,11 +30,19 @@ public class DebugFilter extends ZuulFilter {
 
     @Override
     public boolean shouldFilter() {
-        HttpServletRequest request = RequestContext.getCurrentContext().getRequest();
-        if ("true".equals(request.getParameter(DEBUG_PARAMETER.get()))) {
+        HttpServletRequest request = NFRequestContext.getCurrentContext().getRequest();
+        String debug = request.getHeader("debug");
+        if ("true".equals(debug)) {
             return true;
         }
-        return ROUTING_DEBUG.get();
+
+        ApiDto api = NFRequestContext.getCurrentContext().getBackendApi();
+        for (ComponentDto componentDto : api.getComponentList()) {
+            if (componentDto.getCompCode().equals(componentName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
