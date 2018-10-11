@@ -6,6 +6,7 @@ import com.moguhu.zuul.context.NFRequestContext;
 import com.moguhu.zuul.context.RequestContext;
 import com.moguhu.zuul.groovy.GroovyCompiler;
 import com.moguhu.zuul.groovy.GroovyFileFilter;
+import com.moguhu.zuul.monitoring.InfoBoard;
 import com.moguhu.zuul.scriptManager.ZuulFilterPoller;
 import com.moguhu.zuul.zookeeper.ApiManager;
 import com.moguhu.zuul.zookeeper.curator.ApiTreeCacheListener;
@@ -29,6 +30,8 @@ public class StartServer implements ServletContextListener {
 
     static DynamicStringProperty gateServiceCode = DynamicPropertyFactory.getInstance().getStringProperty(ZuulConstants.GATE_SERVICE_CODE, null);
 
+    private InfoBoard internalsServer;
+
     public StartServer() {
         if (StringUtils.isEmpty(gateServiceCode.get())) {
             logger.error("GateWay serviceCode was not setting, Server Shutdown!");
@@ -41,8 +44,7 @@ public class StartServer implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         try {
-            // TODO 初始化 infobord 监控信息, 先跳过, 后续补上
-
+            initInfoBoard();
             initMonitor();
             initZookeeper();
             initZuul();
@@ -57,6 +59,11 @@ public class StartServer implements ServletContextListener {
     @Override
     public void contextDestroyed(ServletContextEvent servletContextEvent) {
         FilterFileManager.shutdown();
+    }
+
+    private void initInfoBoard() {
+        internalsServer = new InfoBoard(gateServiceCode.get(), ConfigurationManager.getConfigInstance().getInt("server.internals.port", 8077));
+        internalsServer.start();
     }
 
     private void initMonitor() {
