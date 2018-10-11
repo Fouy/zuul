@@ -6,21 +6,13 @@ import com.moguhu.zuul.context.NFRequestContext;
 import com.moguhu.zuul.context.RequestContext;
 import com.moguhu.zuul.groovy.GroovyCompiler;
 import com.moguhu.zuul.groovy.GroovyFileFilter;
-import com.moguhu.zuul.monitoring.CounterFactory;
-import com.moguhu.zuul.monitoring.TracerFactory;
-import com.moguhu.zuul.plugins.Counter;
-import com.moguhu.zuul.plugins.MetricPoller;
-import com.moguhu.zuul.plugins.ServoMonitor;
-import com.moguhu.zuul.plugins.Tracer;
 import com.moguhu.zuul.scriptManager.ZuulFilterPoller;
-import com.moguhu.zuul.stats.monitoring.MonitorRegistry;
 import com.moguhu.zuul.zookeeper.ApiManager;
 import com.moguhu.zuul.zookeeper.curator.ApiTreeCacheListener;
 import com.moguhu.zuul.zookeeper.curator.CuratorClient;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
-import com.netflix.servo.util.ThreadCpuStats;
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -68,21 +60,6 @@ public class StartServer implements ServletContextListener {
     }
 
     private void initMonitor() {
-        logger.info("Registering Servo Monitor");
-        MonitorRegistry.getInstance().setPublisher(new ServoMonitor());
-
-        logger.info("Starting Poller");
-        MetricPoller.startPoller();
-
-        logger.info("Registering Servo Tracer");
-        TracerFactory.initialize(new Tracer());
-
-        logger.info("Registering Servo Counter");
-        CounterFactory.initialize(new Counter());
-
-        logger.info("Starting CPU stats");
-        final ThreadCpuStats stats = ThreadCpuStats.getInstance();
-        stats.start();
     }
 
     private void initZookeeper() {
@@ -102,9 +79,6 @@ public class StartServer implements ServletContextListener {
 
     private void initZuul() throws Exception {
         RequestContext.setContextClass(NFRequestContext.class);
-
-        CounterFactory.initialize(new Counter());
-        TracerFactory.initialize(new Tracer());
 
         logger.info("Starting Groovy Filter file manager");
         final AbstractConfiguration config = ConfigurationManager.getConfigInstance();

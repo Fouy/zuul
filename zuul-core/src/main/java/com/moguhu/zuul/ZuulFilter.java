@@ -2,8 +2,6 @@ package com.moguhu.zuul;
 
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicPropertyFactory;
-import com.moguhu.zuul.monitoring.Tracer;
-import com.moguhu.zuul.monitoring.TracerFactory;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -87,16 +85,12 @@ public abstract class ZuulFilter implements IZuulFilter, Comparable<ZuulFilter> 
         ZuulFilterResult zr = new ZuulFilterResult();
         if (!isFilterDisabled()) {
             if (shouldFilter()) {
-                Tracer t = TracerFactory.instance().startMicroTracer("ZUUL::" + this.getClass().getSimpleName());
                 try {
                     Object res = run();
                     zr = new ZuulFilterResult(res, ExecutionStatus.SUCCESS);
                 } catch (Throwable e) {
-                    t.setName("ZUUL::" + this.getClass().getSimpleName() + " failed");
                     zr = new ZuulFilterResult(ExecutionStatus.FAILED);
                     zr.setException(e);
-                } finally {
-                    t.stopAndLog();
                 }
             } else {
                 zr = new ZuulFilterResult(ExecutionStatus.SKIPPED);

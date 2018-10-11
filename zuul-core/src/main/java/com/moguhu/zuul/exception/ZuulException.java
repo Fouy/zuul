@@ -1,7 +1,5 @@
 package com.moguhu.zuul.exception;
 
-import com.moguhu.zuul.monitoring.CounterFactory;
-
 /**
  * All handled exceptions in Zuul are ZuulExceptions
  *
@@ -57,7 +55,6 @@ public class ZuulException extends Exception {
     }
 
     private static final void incrementCounter(String name) {
-        CounterFactory.instance().increment(name);
     }
 
 }
